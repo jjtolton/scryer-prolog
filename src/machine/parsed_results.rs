@@ -39,7 +39,7 @@ pub fn write_prolog_value_as_json<W: Write>(
                 )
             } else {
                 //return valid json string
-                writer.write_str(s)
+                writer.write_str(&format!("{s:?}"))
             }
         }
         Value::List(l) => {
@@ -326,7 +326,11 @@ impl TryFrom<String> for Value {
         } else if trimmed.starts_with('\'') && trimmed.ends_with('\'')
             || trimmed.starts_with('"') && trimmed.ends_with('"')
         {
-            Ok(Value::String(trimmed[1..trimmed.len() - 1].into()))
+            Ok(Value::String(trimmed.into()))
+        } else if trimmed.eq("true") {
+            Ok(Value::Atom(atom!("true")))
+        } else if trimmed.eq("false") {
+            Ok(Value::Atom(atom!("false")))
         } else if trimmed.starts_with('[') && trimmed.ends_with(']') {
             let split = split_nested_list(&trimmed[1..trimmed.len() - 1]);
 

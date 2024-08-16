@@ -22,6 +22,7 @@ pub mod mock_wam;
 pub mod parsed_results;
 pub mod partial_string;
 pub mod preprocessor;
+pub mod shared_library;
 pub mod stack;
 pub mod streams;
 pub mod system_calls;

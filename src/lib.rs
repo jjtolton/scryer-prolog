@@ -1,10 +1,12 @@
 #![recursion_limit = "4112"]
 
-#[macro_use]
-extern crate static_assertions;
 #[cfg(test)]
 #[macro_use]
 extern crate maplit;
+#[macro_use]
+extern crate static_assertions;
+
+use instructions::instr;
 
 #[macro_use]
 pub mod macros;
@@ -40,19 +42,20 @@ mod repl_helper;
 mod targets;
 pub mod types;
 
-use instructions::instr;
+pub mod lib {
+    #[cfg(target_arch = "wasm32")]
+    pub mod wasm {
+        use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
+        #[wasm_bindgen]
+        pub fn eval_code(s: &str) -> String {
+            use machine::mock_wam::*;
 
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn eval_code(s: &str) -> String {
-    use machine::mock_wam::*;
+            console_error_panic_hook::set_once();
 
-    console_error_panic_hook::set_once();
-
-    let mut wam = Machine::with_test_streams();
-    let bytes = wam.test_load_string(s);
-    String::from_utf8_lossy(&bytes).to_string()
+            let mut wam = Machine::with_test_streams();
+            let bytes = wam.test_load_string(s);
+            String::from_utf8_lossy(&bytes).to_string()
+        }
+    }
 }

@@ -123,8 +123,13 @@ pub mod shared_library {
                     CString::new(output_string.to_string()).unwrap().into_raw()
                 }
                 Some(Err(err)) => {
-                    eprintln!("Query input wasn't valid UTF-8: {err:?}");
-                    std::ptr::null_mut()
+                    let output_string = json!({
+                        "status": "error",
+                        "error": err.to_string(),
+                    })
+                    .to_string();
+
+                    CString::new(output_string.to_string()).unwrap().into_raw()
                 }
             }
         }

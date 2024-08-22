@@ -54,7 +54,7 @@ pub mod shared_library {
         ///
         /// Other concerns:
         /// * after invoking this function, calling any other function besides [`run_query_next`]
-        /// before invoking [`query_state_free`] on the [`Machine`] pointer and [`QueryState`] pointer
+        /// before invoking [`query_state_free`] on the [`QueryState`] pointer
         /// will leave the [`Machine`] in an undefined state
         ///
         #[export_name = "scryer_run_query_iter"]

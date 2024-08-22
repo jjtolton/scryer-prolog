@@ -46,7 +46,7 @@ pub mod shared_library {
         /// Caller must satisfy the following preconditions for this function:
         ///
         /// * Valid [`Machine`] pointer created with [`machine_new`] that has not yet been freed.
-        /// * the input fulfill the safety requirements of [`CStr::From_ptr`].
+        /// * the input fulfill the safety requirements of [`CStr::from_ptr`].
         /// * There must be no other [`QueryState`] for this [`Machine`] started by
         /// [`run_query_iter`] that has not yet been freed with
         /// [`query_state_free`] or the [`Machine`] state will enter an undefined

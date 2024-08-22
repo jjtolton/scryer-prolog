@@ -93,7 +93,7 @@ pub mod shared_library {
         }
 
         /// Returns a NULL POINTER if no addition iterations, else returns a
-        /// JSON encoded UTF-8 string with one iteration of results from a Scryer Prolog query.
+        /// UTF-8 encoded JSON string with one iteration of results from a Scryer Prolog query.
         ///
         /// See documentation for known limitations (e.g., concrete goals only).
         ///

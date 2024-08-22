@@ -180,6 +180,7 @@ pub mod shared_library {
         }
 
         /// Greedily evaluate a prolog query, returning all results in a JSON-formatted string.
+        /// Errors are printed to stderr and a null pointer is returned.
         ///
         /// # Safety
         ///
@@ -203,21 +204,15 @@ pub mod shared_library {
         /// // current limitation is that only concrete (equality) bindings are returned,
         /// // residual goals not yet supported.
         /// {
-        ///   "status": "ok",  // Can also be "error" or "panic"
+        ///   "status": "ok",
         ///   "result": [{ ... }],
         /// }
         ///
         /// // if result is a boolean goal
         ///
         /// {
-        ///   "status": "ok",  // Can also be "error" or "panic"
+        ///   "status": "ok",
         ///   "result": boolean
-        /// }
-        ///
-        /// // if panic
-        /// {
-        ///   "status": "error" | "panic",
-        ///   "error": error message | "panic"
         /// }
         #[export_name = "scryer_run_query"]
         pub unsafe extern "C" fn run_query(

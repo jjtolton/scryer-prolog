@@ -16,7 +16,7 @@ mod dll_tests {
             CString::new("false.").unwrap(),
             CString::new("X=2.").unwrap(),
             CString::new("member(a, [a, b, c]).").unwrap(),
-            CString::new("member(A, [a, b, c, \"a\", \"b\", \"c\", f(a), \"f(a)\"]).").unwrap(),
+            CString::new(r#"member(A, [a, b, c, "a", "b", "c", f(a), "f(a)"])."#).unwrap(),
         ];
 
         let expected_results = vec![
@@ -66,8 +66,8 @@ mod dll_tests {
         // should be X=Y not Y=X, see https://github.com/mthom/scryer-prolog/pull/2465#issuecomment-2294961856
         // expected fix with https://github.com/mthom/scryer-prolog/pull/2475
         let expected_results = [
-            "{\"result\":[{\"Y\":\"X\"}],\"status\":\"ok\"}", // should be:
-                                                              // "{\"result\":[{\"X\":\"Y\"}],\"status\":\"ok\"}"
+            r#"{"result":[{"Y":"X"}],"status":"ok"}"#, // should be:
+                                                       // "{\"result\":[{\"X\":\"Y\"}],\"status\":\"ok\"}"
         ];
 
         let query_state_ref = unsafe { &mut *query_state };
@@ -94,9 +94,7 @@ mod dll_tests {
         let program =
             CString::new(":- use_module(library(lists)). :- use_module(library(dif)).").unwrap();
         let module_name = CString::new("facts").unwrap();
-        let query =
-            CString::new("member(X, [a,\"a\",f(a),\"f(a)\", true, \"true\", false, \"false\"]).")
-                .unwrap();
+        let query = CString::new(r#"member(X, [a,"a",f(a),"f(a)", true, "true", false, "false"])."#).unwrap();
         let machine_ptr: *mut Machine = machine_new();
         unsafe {
             consult_module_string(&mut *machine_ptr, module_name.as_ptr(), program.as_ptr());
@@ -104,14 +102,14 @@ mod dll_tests {
         let query_state = unsafe { run_query_iter(&mut *machine_ptr, query.as_ptr()) };
 
         let expected_results = [
-            "{\"result\":[{\"X\":\"a\"}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\":\"\\\"a\\\"\"}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\":\"f(a)\"}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\":\"\\\"f(a)\\\"\"}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\": true}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\":\"\\\"true\\\"\"}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\": false}],\"status\":\"ok\"}",
-            "{\"result\":[{\"X\":\"\\\"false\\\"\"}],\"status\":\"ok\"}",
+            r#"{"result":[{"X":"a"}],"status":"ok"}"#,
+            r#"{"result":[{"X":"\"a\""}],"status":"ok"}"#,
+            r#"{"result":[{"X":"f(a)"}],"status":"ok"}"#,
+            r#"{"result":[{"X":"\"f(a)\""}],"status":"ok"}"#,
+            r#"{"result":[{"X": true}],"status":"ok"}"#,
+            r#"{"result":[{"X":"\"true\""}],"status":"ok"}"#,
+            r#"{"result":[{"X": false}],"status":"ok"}"#,
+            r#"{"result":[{"X":"\"false\""}],"status":"ok"}"#,
         ];
 
         let query_state_ref = unsafe { &mut *query_state };

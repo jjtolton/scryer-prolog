@@ -185,17 +185,12 @@ pub mod shared_library {
         ///
         /// * `machine` must be a valid [`Machine`] pointer created with [`machine_new`]
         /// that has not yet been freed.
-        /// * `query_state` must be a valid [`QueryState`] created with
-        /// [`run_query_iter`] that has not yet been freed.
         /// * There must be no existing [`QueryState`] for this [`Machine`] started by
         /// [`run_query_iter`] that has not yet been freed with
         /// [`query_state_free`] or the [`Machine`] state will enter an undefined
         /// configuration with unpredictable results.
         /// * it is the responsibility of the caller to deallocate the pointer returned by
         /// this function with [`scyer_free_c_string`] in order to avoid memory leaks.
-        /// * once the first boolean result has been returned, the query has been exhausted,
-        /// and the caller should call [`query_state_free`] on the
-        /// [`QueryState`] before calling any other [`Machine`] functions from this shared library.
         ///
         ///
         /// # Returns

@@ -39,7 +39,8 @@ pub mod shared_library {
             }
         }
 
-        /// Returns a new query generator for the given virtual machine.
+        /// Returns a new query generator for the given virtual machine.  Null pointer returned
+        /// if string is not valid UTF-8.
         ///
         /// # Safety
         ///
@@ -69,7 +70,6 @@ pub mod shared_library {
                     Box::into_raw(Box::new(query_state))
                 }
                 Err(err) => {
-                    eprintln!("Query input wasn't valid UTF-8: {err:?}");
                     std::ptr::null_mut()
                 }
             }

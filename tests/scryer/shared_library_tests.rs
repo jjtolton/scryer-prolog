@@ -6,10 +6,7 @@ mod dll_tests {
 
     // uncomment if we can figure out why this isn't working
     // use crate::lib::dll::{machine_free};
-    use scryer_prolog::machine::shared_library::shared_library::dll::{
-        consult_module_string, free_c_string, machine_new, query_state_free, run_query,
-        run_query_iter, run_query_next,
-    };
+    use scryer_prolog::machine::shared_library::shared_library::dll::{consult_module_string, free_c_string, machine_free, machine_new, query_state_free, run_query, run_query_iter, run_query_next};
     use scryer_prolog::machine::Machine;
 
     #[test]
@@ -49,11 +46,10 @@ mod dll_tests {
         }
 
         // breaks if uncommented
-        // unsafe { scryer_machine_free(*machine); }
+        unsafe { machine_free(machine_ptr); }
     }
 
     #[test]
-    #[ignore = "known bug"]
     fn test_scryer_run_query_equal_variables() {
         let program =
             CString::new(":- use_module(library(lists)). :- use_module(library(dif)).").unwrap();
@@ -90,8 +86,7 @@ mod dll_tests {
         }
 
         unsafe { query_state_free(query_state) }
-        // causes an error if uncommented
-        // unsafe { machine_free(machine_ptr) };
+        unsafe { machine_free(machine_ptr); }
     }
 
     #[test]
@@ -135,7 +130,6 @@ mod dll_tests {
         }
 
         unsafe { query_state_free(query_state) }
-        // causes an error if uncommented
-        // unsafe { machine_free(machine_ptr) };
+        unsafe { machine_free(machine_ptr) };
     }
 }

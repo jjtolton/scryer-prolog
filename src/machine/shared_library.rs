@@ -135,6 +135,7 @@ pub mod shared_library {
         }
 
         /// Consults a Scryer Prolog module from a string, optionally with a given module name.
+        /// Will panic if provided invalid Scryer Prolog code.
         ///
         /// # Safety
         ///
@@ -157,10 +158,6 @@ pub mod shared_library {
         /// Scryer Prolog module name.
         /// * `input` - A pointer to a null-terminated UTF-8 string representing Scryer Prolog code.
         ///
-        /// # Returns
-        ///
-        /// - [`true`] if the module was successfully loaded.
-        /// - [`false`] if an error occurred while loading the module.
         #[export_name = "scryer_consult_module_string"]
         pub unsafe extern "C" fn consult_module_string(
             machine: &mut Machine,

@@ -3604,8 +3604,10 @@ impl Machine {
                     break;
                 }
                 Some(Err(ErrorKind::WouldBlock)) => {
-                    // Transient: no char available within timeout
-                    self.machine_st.fail = true;
+                    // Timeout/non-ready: return an EOF term without marking stream as past EOF.
+                    // This keeps the stream usable for subsequent reads when data arrives.
+                    let end_of_file = atom!("end_of_file");
+                    self.machine_st.unify_atom(end_of_file, addr);
                     break;
                 }
                 Some(Err(_)) => {
@@ -3689,6 +3691,10 @@ impl Machine {
                         string.push(c);
                     }
                     Some(Err(e)) => {
+                        // For WouldBlock (timeout/non-ready), simply break without error.
+                        if e.kind() == ErrorKind::WouldBlock {
+                            break;
+                        }
                         let stub = functor_stub(atom!("$get_n_chars"), 3);
                         let err = self.machine_st.session_error(SessionError::from(e));
 

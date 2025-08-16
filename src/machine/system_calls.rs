@@ -2670,6 +2670,11 @@ impl Machine {
                     self.machine_st.fail = true;
                     break;
                 }
+                Err(ErrorKind::WouldBlock) => {
+                    // Not EOF: no byte available within timeout; just fail this call.
+                    self.machine_st.fail = true;
+                    break;
+                }
                 _ => {
                     self.machine_st.eof_action(
                         self.machine_st.registers[2],
@@ -2764,7 +2769,17 @@ impl Machine {
                     self.machine_st.fail = true;
                     break;
                 }
-                _ => {
+                Some(Err(ErrorKind::WouldBlock)) => {
+                    // Not EOF: no char available within timeout; just fail this call.
+                    self.machine_st.fail = true;
+                    break;
+                }
+                None => {
+                    // Timeout or no data available yet: transient failure
+                    self.machine_st.fail = true;
+                    break;
+                }
+                Some(Err(_)) => {
                     self.machine_st.eof_action(
                         self.machine_st.registers[2],
                         stream,
@@ -3573,30 +3588,40 @@ impl Machine {
             )
         };
 
-        let mut iter = match self.machine_st.open_parsing_stream(stream) {
-            Ok(iter) => iter,
-            Err(e) => {
-                if e.is_unexpected_eof() {
-                    return self.machine_st.eof_action(
+        loop {
+            match stream
+                .peek_char()
+                .map(|result| result.map_err(|e| e.kind()))
+            {
+                Some(Ok(c)) => {
+                    // consume the character and unify
+                    stream.consume(c.len_utf8());
+                    self.machine_st.unify_char(c, addr);
+                    break;
+                }
+                Some(Err(ErrorKind::PermissionDenied)) => {
+                    self.machine_st.fail = true;
+                    break;
+                }
+                Some(Err(ErrorKind::WouldBlock)) => {
+                    // Transient: no char available within timeout
+                    self.machine_st.fail = true;
+                    break;
+                }
+                Some(Err(_)) => {
+                    self.machine_st.eof_action(
                         self.machine_st.registers[2],
                         stream,
                         atom!("get_char"),
                         2,
-                    );
-                } else {
-                    let err = self.machine_st.session_error(SessionError::from(e));
-                    return Err(self.machine_st.error_form(err, stub_gen()));
-                }
-            }
-        };
+                    )?;
 
-        loop {
-            match iter.read_char() {
-                Some(Ok(c)) => {
-                    self.machine_st.unify_char(c, addr);
-                    break;
+                    if EOFAction::Reset != stream.options().eof_action() || self.machine_st.fail {
+                        break;
+                    }
                 }
-                _ => {
+                None => {
+                    // True EOF (no more data) -> perform eof_action
                     self.machine_st.eof_action(
                         self.machine_st.registers[2],
                         stream,

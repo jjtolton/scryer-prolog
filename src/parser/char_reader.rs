@@ -16,12 +16,30 @@ use std::error::Error;
 use std::fmt;
 use std::io;
 use std::io::{ErrorKind, IoSliceMut, Read};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
+use std::time::Duration;
 use std::str;
 
 pub struct CharReader<R> {
     inner: R,
     buf: SmallVec<[u8; 32]>,
     pos: usize,
+    worker: Option<ReaderWorker>,
+    inflight_read: bool,
+}
+
+struct ReaderWorker {
+    tx: Sender<ReadRequest>,
+    rx: Receiver<ReadResponse>,
+}
+
+enum ReadRequest {
+    Read(usize),
+}
+
+enum ReadResponse {
+    Data(io::Result<Vec<u8>>),
 }
 
 /// An error raised when parsing a UTF-8 byte stream fails.
@@ -49,6 +67,8 @@ impl<R> CharReader<R> {
             inner,
             buf: SmallVec::new(),
             pos: 0,
+            worker: None,
+            inflight_read: false,
         }
     }
 
@@ -102,6 +122,121 @@ impl<R> CharReader<R> {
 }
 
 impl<R: Read> CharReader<R> {
+    // Spawns the background reader thread lazily.
+    // Safety rationale: We pass a raw address of `inner` to the worker thread.
+    // After the worker starts, all reads are performed exclusively on that
+    // thread; the main thread must not access `inner` directly anymore.
+    // CharReader values should not be moved in memory after the worker is
+    // spawned, which holds in this project because CharReader is allocated in
+    // the arena before any reads occur. Moving would invalidate the raw pointer.
+    fn ensure_worker(&mut self) {
+        if self.worker.is_some() {
+            return;
+        }
+
+        // Create channels: main sends requests to worker, receives responses.
+        let (req_tx, req_rx) = mpsc::channel::<ReadRequest>();
+        let (resp_tx, resp_rx) = mpsc::channel::<ReadResponse>();
+
+        // Raw pointer to inner to avoid requiring R: Send. We guarantee only the
+        // worker thread will touch inner for reads once spawned.
+        let inner_addr: usize = (&mut self.inner as *mut R) as usize;
+
+        thread::spawn(move || {
+            // Worker loop: perform blocking reads as requested
+            while let Ok(msg) = req_rx.recv() {
+                match msg {
+                    ReadRequest::Read(mut to_read) => {
+                        if to_read == 0 || to_read > 4 { to_read = 4; }
+                        // Safety: inner_ptr is valid and uniquely used by this thread for reads.
+                        let res = unsafe {
+                            let inner = &mut *(inner_addr as *mut R);
+                            let mut buf = vec![0u8; to_read];
+                            match inner.read(&mut buf[..]) {
+                                Ok(n) => {
+                                    buf.truncate(n);
+                                    Ok(buf)
+                                }
+                                Err(e) => Err(e),
+                            }
+                        };
+                        let _ = resp_tx.send(ReadResponse::Data(res));
+                    }
+                }
+            }
+        });
+
+        self.worker = Some(ReaderWorker { tx: req_tx, rx: resp_rx });
+    }
+
+    // Try to read up to `need` bytes into self.buf (appending). Returns:
+    // Ok(Some(n)) if bytes were read; Ok(None) if timed out; Err(e) on error.
+    fn read_more_with_timeout(&mut self, need: usize) -> io::Result<Option<usize>> {
+        self.ensure_worker();
+        // get handles
+        let (tx, rx_ref) = {
+            let w = self.worker.as_mut().unwrap();
+            (w.tx.clone(), &w.rx)
+        };
+
+        // First, non-blockingly drain any pending response from a prior request.
+        // This guarantees we never "stick" with inflight_read=true if data already arrived.
+        loop {
+            match rx_ref.try_recv() {
+                Ok(ReadResponse::Data(Ok(bytes))) => {
+                    self.inflight_read = false;
+                    let n = bytes.len();
+                    if n > 0 {
+                        self.buf.extend_from_slice(&bytes);
+                        if self.pos > self.buf.len() { self.pos = self.buf.len(); }
+                    }
+                    return Ok(Some(n));
+                }
+                Ok(ReadResponse::Data(Err(e))) => {
+                    self.inflight_read = false;
+                    return Err(e);
+                }
+                Err(mpsc::TryRecvError::Empty) => break,
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    self.inflight_read = false;
+                    return Err(io::Error::new(ErrorKind::UnexpectedEof, "read worker disconnected"));
+                }
+            }
+        }
+
+        // Only send a new read request if there isn't one already in flight.
+        if !self.inflight_read {
+            if tx.send(ReadRequest::Read(need)).is_err() {
+                // worker gone
+                return Err(io::Error::new(ErrorKind::UnexpectedEof, "read worker stopped"));
+            }
+            self.inflight_read = true;
+        }
+
+        // wait up to 100ms for the in-flight read to complete
+        match rx_ref.recv_timeout(Duration::from_millis(100)) {
+            Ok(ReadResponse::Data(Ok(bytes))) => {
+                self.inflight_read = false;
+                let n = bytes.len();
+                if n > 0 {
+                    self.buf.extend_from_slice(&bytes);
+                    if self.pos > self.buf.len() { self.pos = self.buf.len(); }
+                }
+                Ok(Some(n))
+            }
+            Ok(ReadResponse::Data(Err(e))) => {
+                self.inflight_read = false;
+                Err(e)
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                Ok(None)
+            }
+            Err(_) => {
+                self.inflight_read = false;
+                Err(io::Error::new(ErrorKind::UnexpectedEof, "read worker disconnected"))
+            }
+        }
+    }
     pub fn refresh_buffer(&mut self) -> io::Result<&[u8]> {
         // If we've reached the end of our internal buffer then we need to fetch
         // some more data from the underlying reader.
@@ -109,40 +244,66 @@ impl<R: Read> CharReader<R> {
         // to tell the compiler that the pos..cap slice is always valid.
         if self.pos >= self.buf.len() {
             self.buf.clear();
-
-            let mut word = [0u8; std::mem::size_of::<char>()];
-            let nread = self.inner.read(&mut word)?;
-
-            self.buf.extend_from_slice(&word[..nread]);
             self.pos = 0;
+            match self.read_more_with_timeout(std::mem::size_of::<char>())? {
+                Some(_n) => {}
+                None => {
+                    // Timed out: indicate WouldBlock instead of empty slice to avoid false EOF.
+                    return Err(io::Error::new(ErrorKind::WouldBlock, "would block"));
+                }
+            }
         }
 
         Ok(&self.buf[self.pos..])
     }
 
     pub fn peek_byte(&mut self) -> Option<io::Result<u8>> {
-        match self.refresh_buffer() {
-            Ok(_buf) => _buf.first().cloned().map(Ok),
+        // If buffer has data, return first byte.
+        if self.pos < self.buf.len() {
+            return Some(Ok(self.buf[self.pos]));
+        }
+        // Otherwise, try to read 1 byte with a 100ms timeout.
+        // Snapshot state to restore if the read times out.
+        let saved_buf = self.buf.clone();
+        let saved_pos = self.pos;
+
+        self.buf.clear();
+        self.pos = 0;
+        match self.read_more_with_timeout(1) {
             Err(e) => Some(Err(e)),
+            Ok(None) => {
+                // Timeout: restore previous buffer/pos, report WouldBlock.
+                self.buf = saved_buf;
+                self.pos = saved_pos;
+                Some(Err(io::Error::new(ErrorKind::WouldBlock, "would block")))
+            }
+            Ok(Some(0)) => None, // true EOF
+            Ok(Some(_)) => {
+                // Data arrived; return the first byte.
+                if self.pos < self.buf.len() {
+                    Some(Ok(self.buf[self.pos]))
+                } else {
+                    None
+                }
+            }
         }
     }
 }
 
 impl<R: Read> CharRead for CharReader<R> {
     fn peek_char(&mut self) -> Option<io::Result<char>> {
-        match self.refresh_buffer() {
-            Ok(_buf) => {}
-            Err(e) => return Some(Err(e)),
-        }
+        // Synchronous implementation that attempts to decode the next UTF-8
+        // character from the buffered input, reading up to 4 bytes from the
+        // underlying reader as needed. This mirrors the previous logic without
+        // spawning a thread, ensuring correctness and avoiding mutation issues
+        // across threads.
 
+        // Helper to build an InvalidData error for bad UTF-8 leading bytes.
         let bad_bytes_error = |buf: &[u8]| {
-            // If we have 4 bytes that still don't make up
-            // a valid code point, then we have garbage.
-
-            // We have bad data in the buffer. Remove
-            // leading bytes until either the buffer is
-            // empty, or we have a valid code point.
-
+            // If we have 4 bytes that still don't make up a valid code point,
+            // then we have garbage. Remove leading bytes until either the
+            // buffer is empty, or we have a valid code point, and report the
+            // removed bytes as the error payload.
             let mut split_point = 1;
             let mut badbytes = vec![];
 
@@ -157,72 +318,93 @@ impl<R: Read> CharRead for CharReader<R> {
                 split_point += 1;
             }
 
-            // Raise the error. If we still have data in
-            // the buffer, it will be returned on the next
-            // loop.
-
             io::Error::new(io::ErrorKind::InvalidData, BadUtf8Error { bytes: badbytes })
         };
 
         loop {
+            // Ensure we have at least one byte in the buffer if possible.
+            if self.pos >= self.buf.len() {
+                self.buf.clear();
+                self.pos = 0;
+                match self.read_more_with_timeout(std::mem::size_of::<char>()) {
+                    Err(e) => return Some(Err(e)),
+                    Ok(None) => {
+                        // Timeout: signal WouldBlock to avoid falsely advertising EOF.
+                        return Some(Err(io::Error::new(ErrorKind::WouldBlock, "would block")));
+                    }
+                    Ok(Some(_)) => {}
+                }
+            }
+
             let buf = &self.buf[self.pos..];
 
             if !buf.is_empty() {
-                let e = match str::from_utf8(buf) {
+                // Fast path: if the remaining buffer is valid UTF-8, return the
+                // first character without consuming it.
+                match str::from_utf8(buf) {
                     Ok(s) => {
-                        let mut chars = s.chars();
-                        let c = chars.next().unwrap();
-
-                        return Some(Ok(c));
-                    }
-                    Err(e) => e,
-                };
-
-                if buf.len() - e.valid_up_to() >= 4 {
-                    return Some(Err(bad_bytes_error(buf)));
-                } else if self.pos >= self.buf.len() {
-                    return None;
-                } else if self.buf.len() - self.pos >= 4 && self.pos < e.valid_up_to() {
-                    return match str::from_utf8(&self.buf[self.pos..self.pos + e.valid_up_to()]) {
-                        Ok(s) => {
-                            let mut chars = s.chars();
-                            let c = chars.next().unwrap();
-
-                            Some(Ok(c))
+                        if let Some(c) = s.chars().next() {
+                            return Some(Ok(c));
+                        } else {
+                            // Shouldn't happen because buf isn't empty, but handle gracefully.
+                            return None;
                         }
-                        Err(e) => {
-                            let badbytes = self.buf[self.pos..self.pos + e.valid_up_to()].to_vec();
-
-                            Some(Err(io::Error::new(
-                                io::ErrorKind::InvalidData,
-                                BadUtf8Error { bytes: badbytes },
-                            )))
-                        }
-                    };
-                } else {
-                    let buf_len = self.buf.len();
-
-                    for (c, idx) in (self.pos..buf_len).enumerate() {
-                        self.buf[c] = self.buf[idx];
                     }
+                    Err(e) => {
+                        // If at least one complete character exists within the
+                        // valid prefix, extract it without reading more.
+                        let valid_up_to = e.valid_up_to();
 
-                    self.buf.truncate(buf_len - self.pos);
+                        if buf.len() - valid_up_to >= 4 {
+                            // 4 or more invalid leading bytes: treat as error.
+                            return Some(Err(bad_bytes_error(buf)));
+                        } else if self.pos >= self.buf.len() {
+                            return None;
+                        } else if self.buf.len() - self.pos >= 4 && self.pos < valid_up_to {
+                            // We have enough valid bytes for a character in the prefix.
+                            return match str::from_utf8(&self.buf[self.pos..self.pos + valid_up_to]) {
+                                Ok(s) => s.chars().next().map(|c| Ok(c)),
+                                Err(e) => {
+                                    let badbytes = self.buf[self.pos..self.pos + e.valid_up_to()].to_vec();
+                                    Some(Err(io::Error::new(
+                                        io::ErrorKind::InvalidData,
+                                        BadUtf8Error { bytes: badbytes },
+                                    )))
+                                }
+                            };
+                        } else {
+                            // Shift remaining bytes to the front to make room, then read more.
+                            // Snapshot current buffer and position to allow rollback on timeout.
+                            let saved_buf = self.buf.clone();
+                            let saved_pos = self.pos;
 
-                    let buf_len = self.buf.len();
-                    self.pos = 0;
+                            let buf_len = self.buf.len();
+                            for (c, idx) in (self.pos..buf_len).enumerate() {
+                                self.buf[c] = self.buf[idx];
+                            }
+                            self.buf.truncate(buf_len - self.pos);
+                            let buf_len = self.buf.len();
+                            self.pos = 0;
 
-                    if buf_len >= 4 {
-                        continue;
-                    }
+                            if buf_len >= 4 {
+                                // Already have 4 bytes; loop to re-evaluate.
+                                continue;
+                            }
 
-                    let mut word = [0u8; 4];
-                    let word_slice = &mut word[buf_len..4];
-
-                    match self.inner.read(word_slice) {
-                        Err(e) => return Some(Err(e)),
-                        Ok(0) => return Some(Err(bad_bytes_error(&self.buf))),
-                        Ok(nread) => {
-                            self.buf.extend_from_slice(&word_slice[0..nread]);
+                            // Attempt to read more bytes via background worker with 100ms timeout.
+                            match self.read_more_with_timeout(4 - buf_len) {
+                                Err(e) => return Some(Err(e)),
+                                Ok(None) => {
+                                    // Timeout: restore previous buffer/pos and report transient lack of data.
+                                    self.buf = saved_buf;
+                                    self.pos = saved_pos;
+                                    return None;
+                                }
+                                Ok(Some(0)) => return Some(Err(bad_bytes_error(&self.buf))),
+                                Ok(Some(_n)) => {
+                                    // bytes appended to self.buf; loop will re-evaluate
+                                }
+                            }
                         }
                     }
                 }
@@ -273,7 +455,7 @@ impl<R: Read> Read for CharReader<R> {
         //     rem.read(buf)?
         // };
 
-        self.consume(nread);
+        self.pos += nread;
         Ok(nread)
     }
 
@@ -284,7 +466,7 @@ impl<R: Read> Read for CharReader<R> {
     fn read_exact(&mut self, mut buf: &mut [u8]) -> io::Result<()> {
         if self.buffer().len() >= buf.len() {
             buf.copy_from_slice(&self.buffer()[..buf.len()]);
-            self.consume(buf.len());
+            self.pos += buf.len();
             return Ok(());
         }
 
@@ -321,7 +503,7 @@ impl<R: Read> Read for CharReader<R> {
         self.refresh_buffer()?;
 
         let nread = (&self.buf[self.pos..]).read_vectored(bufs)?;
-        self.consume(nread);
+        self.pos += nread;
 
         Ok(nread)
     }

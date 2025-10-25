@@ -11,11 +11,3 @@ Timeout support for `get_n_chars/4` enabling non-blocking character reading from
 **Branch**: `discussion-3035`
 
 **[View Full Technical Presentation →](get_n_chars_4.html)**
-
-## Contributing
-
-For general contribution guidelines, see the [main repository](https://github.com/mthom/scryer-prolog).
-
-## About This Fork
-
-This is [@jjtolton's fork](https://github.com/jjtolton/scryer-prolog) of Scryer Prolog, focused on experimental features and enhancements.

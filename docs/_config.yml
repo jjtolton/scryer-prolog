@@ -6,7 +6,7 @@ markdown: kramdown
 # Site settings
 show_downloads: false
 github:
-  repository_url: https://github.com/jjtolton/scryer-prolog
+  is_project_page: false
 
 # Include HTML files
 include:

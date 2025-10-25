@@ -4,12 +4,6 @@ This site documents proposed enhancements and changes to [Scryer Prolog](https:/
 
 ## Active Proposals
 
-### [Shared Library Interface](proposed-changes/shared-library.md)
-Work in progress to expose Scryer Prolog as a shared library with C API for embedding in other languages.
-
-**Status**: In Development
-**Branch**: `ISSUE-2464/scryer-prolog-shared-lib`
-
 ### [Improved Syntax Error Reporting](proposed-changes/syntax-error-reporting.md)
 Enhanced error messages and reporting for syntax errors in Prolog code.
 

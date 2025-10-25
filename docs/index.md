@@ -1,6 +1,21 @@
-# Scryer Prolog - Proposed Changes
+# Scryer Prolog - Documentation
 
-This site documents proposed enhancements and changes to [Scryer Prolog](https://github.com/mthom/scryer-prolog).
+This site documents proposed enhancements, generative analyses, and changes to [Scryer Prolog](https://github.com/mthom/scryer-prolog).
+
+## Generative Analysis
+
+### [Garbage Collection: Technical Analysis](generative-analysis/garbage-collection.html)
+Comprehensive technical analysis of memory management in Scryer Prolog, examining the consequences of missing GC and what it would take to implement it.
+
+**Topics Covered**:
+- Current memory management architecture (heap, arena, atom table)
+- 7 categories of memory leaks with quantified impact
+- Implementation roadmap (5-7 months MVP, 12-19 months production-ready)
+- Rust-specific challenges and design decisions
+
+**[View Full Analysis →](generative-analysis/garbage-collection.html)**
+
+---
 
 ## Active Proposals
 

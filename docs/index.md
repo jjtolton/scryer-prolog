@@ -4,29 +4,12 @@ This site documents proposed enhancements and changes to [Scryer Prolog](https:/
 
 ## Active Proposals
 
-### [Improved Syntax Error Reporting](proposed-changes/syntax-error-reporting.md)
-Enhanced error messages and reporting for syntax errors in Prolog code.
-
-**Status**: In Development
-**Branch**: `improve-syntax-error-reporting`
-
-### [Double Bar Syntax](proposed-changes/double-bar.md)
-Implementation of double bar (`||`) syntax support.
-
-**Status**: Proposed
-**Branch**: `double-bar`
-
-### [Digit Separators](proposed-changes/digit-separators.md)
-Support for digit separators in numeric literals for improved readability.
-
-**Status**: Proposed
-**Branch**: `digit-separators-upstream`
-
 ### [Non-blocking I/O: get_n_chars/4 with Timeout](get_n_chars_4.html)
 Timeout support for `get_n_chars/4` enabling non-blocking character reading from TCP sockets and process pipes.
 
 **Status**: Complete
 **Branch**: `discussion-3035`
+
 **[View Full Technical Presentation →](get_n_chars_4.html)**
 
 ## Contributing

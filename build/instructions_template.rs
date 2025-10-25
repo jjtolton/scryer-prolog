@@ -295,6 +295,8 @@ enum SystemClauseType {
     GetChar,
     #[strum_discriminants(strum(props(Arity = "3", Name = "$get_n_chars")))]
     GetNChars,
+    #[strum_discriminants(strum(props(Arity = "4", Name = "$get_n_chars")))]
+    GetNCharsWithTimeout,
     #[strum_discriminants(strum(props(Arity = "2", Name = "$get_code")))]
     GetCode,
     #[strum_discriminants(strum(props(Arity = "1", Name = "$get_single_char")))]
@@ -1740,6 +1742,7 @@ fn generate_instruction_preface() -> TokenStream {
                     &Instruction::CallGetByte |
                     &Instruction::CallGetChar |
                     &Instruction::CallGetNChars |
+                    &Instruction::CallGetNCharsWithTimeout |
                     &Instruction::CallGetCode |
                     &Instruction::CallGetSingleChar |
                     &Instruction::CallTruncateIfNoLiftedHeapGrowthDiff |
@@ -2002,6 +2005,7 @@ fn generate_instruction_preface() -> TokenStream {
                     &Instruction::ExecuteGetByte |
                     &Instruction::ExecuteGetChar |
                     &Instruction::ExecuteGetNChars |
+                    &Instruction::ExecuteGetNCharsWithTimeout |
                     &Instruction::ExecuteGetCode |
                     &Instruction::ExecuteGetSingleChar |
                     &Instruction::ExecuteTruncateIfNoLiftedHeapGrowthDiff |

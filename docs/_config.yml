@@ -2,3 +2,12 @@ title: Scryer Prolog - Proposed Changes
 description: Documentation for proposed changes and enhancements to Scryer Prolog
 theme: jekyll-theme-cayman
 markdown: kramdown
+
+# Site settings
+show_downloads: false
+github:
+  repository_url: https://github.com/jjtolton/scryer-prolog
+
+# Include HTML files
+include:
+  - get_n_chars_4.html

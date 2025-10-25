@@ -28,8 +28,8 @@ Comprehensive analysis of what "strictly conforming" means in ISO Prolog, how Sc
 - Definition of strict conformance vs. conforming processor
 - Complete catalog of Scryer's 46+ non-ISO extensions
 - Architectural requirements for strict mode implementation
-- Phased implementation roadmap (3-12 months)
-- Alternative approaches (static analysis, separate distribution, pragma-based)
+- Phased implementation strategy
+- Recommended approach and success criteria
 
 **[View Full Analysis →](generative-analysis/iso-strict-conformance.html)**
 

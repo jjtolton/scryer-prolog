@@ -213,7 +213,6 @@
                     <li><strong>Current Status:</strong> Conforming ISO Prolog processor with extensions</li>
                     <li><strong>Syntactic Conformity:</strong> ✓ Passes all tests</li>
                     <li><strong>Strict Conformance:</strong> ✗ Uses many non-ISO features</li>
-                    <li><strong>Implementation Effort:</strong> 3-6 months for MVP, 8-12 months for production</li>
                     <li><strong>Primary Challenge:</strong> Architectural separation of ISO core from extensions</li>
                 </ul>
             </section>
@@ -480,7 +479,7 @@
 
                 <div class="timeline">
                     <div class="timeline-item">
-                        <h4>Phase 1: ISO Core Isolation (2-3 months)</h4>
+                        <h4>Phase 1: ISO Core Isolation</h4>
                         <ul>
                             <li>Identify and catalog all 100+ ISO-mandated built-in predicates</li>
                             <li>Create ISO-only predicate whitelist</li>
@@ -491,7 +490,7 @@
                     </div>
 
                     <div class="timeline-item">
-                        <h4>Phase 2: Loader & Parser Modifications (1-2 months)</h4>
+                        <h4>Phase 2: Loader & Parser Modifications</h4>
                         <ul>
                             <li>Modify loader (<code>src/machine/loader.rs</code>) to check mode</li>
                             <li>Add strict mode validation in parser</li>
@@ -502,7 +501,7 @@
                     </div>
 
                     <div class="timeline-item">
-                        <h4>Phase 3: Flag & Configuration System (2-4 weeks)</h4>
+                        <h4>Phase 3: Flag & Configuration System</h4>
                         <ul>
                             <li>Add Prolog flag <code>iso_strict_conformance</code> (on/off)</li>
                             <li>Command-line option: <code>--strict-iso</code></li>
@@ -512,7 +511,7 @@
                     </div>
 
                     <div class="timeline-item">
-                        <h4>Phase 4: Library Isolation (1-2 months)</h4>
+                        <h4>Phase 4: Library Isolation</h4>
                         <ul>
                             <li>Create <code>src/lib/iso/</code> directory for ISO-only predicates</li>
                             <li>Move ISO predicates from extended libraries to ISO core</li>
@@ -522,7 +521,7 @@
                     </div>
 
                     <div class="timeline-item">
-                        <h4>Phase 5: Testing & Validation (1-2 months)</h4>
+                        <h4>Phase 5: Testing & Validation</h4>
                         <ul>
                             <li>Create comprehensive test suite for strict ISO mode</li>
                             <li>Verify rejection of all non-ISO features</li>
@@ -533,7 +532,7 @@
                     </div>
 
                     <div class="timeline-item">
-                        <h4>Phase 6: Documentation (2-4 weeks)</h4>
+                        <h4>Phase 6: Documentation</h4>
                         <ul>
                             <li>Document all ISO vs. non-ISO predicates</li>
                             <li>Create migration guide for strict mode</li>
@@ -650,136 +649,16 @@ pub fn initialize_flags() {
                     </tbody>
                 </table>
 
-                <h3>Effort Estimates</h3>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Deliverable</th>
-                            <th>Effort (Person-Months)</th>
-                            <th>Risk Level</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>MVP (basic strict mode, command-line flag)</td>
-                            <td>3-4 months</td>
-                            <td>Medium</td>
-                        </tr>
-                        <tr>
-                            <td>Production-Ready (full validation, comprehensive testing)</td>
-                            <td>8-12 months</td>
-                            <td>Medium-High</td>
-                        </tr>
-                        <tr>
-                            <td>Documentation & Examples</td>
-                            <td>1-2 months</td>
-                            <td>Low</td>
-                        </tr>
-                        <tr>
-                            <td>Long-term Maintenance (ongoing)</td>
-                            <td>0.5 months/year</td>
-                            <td>Medium</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section id="alternative-approaches">
-                <h2>Alternative Approaches</h2>
-
-                <h3>Option 1: Static Analysis Tool (Simpler)</h3>
-
-                <div class="info-box">
-                    <h4>Concept</h4>
-                    <p>Instead of modifying the runtime, create a separate static analysis tool that checks Prolog source files for ISO conformance.</p>
-                </div>
-
-                <h4>Advantages</h4>
-                <ul>
-                    <li>No runtime performance impact</li>
-                    <li>No modifications to core Scryer engine</li>
-                    <li>Can be developed independently</li>
-                    <li>Useful for developers targeting multiple Prolog systems</li>
-                </ul>
-
-                <h4>Implementation</h4>
-                <pre>scryer-prolog --check-iso-strict myprogram.pl
-
-# Output:
-# Warning: Non-ISO predicate: setup_call_cleanup/3 (line 42)
-# Error: Non-ISO library: use_module(library(clpz)) (line 5)
-# Summary: 2 non-ISO features detected</pre>
-
-                <p><strong>Effort:</strong> 2-3 months for MVP</p>
-
-                <h3>Option 2: Separate "Scryer-ISO" Distribution</h3>
-
-                <div class="info-box">
-                    <h4>Concept</h4>
-                    <p>Create a separate binary distribution that only includes ISO features, compiled with <code>--no-default-features</code> and ISO-only libraries.</p>
-                </div>
-
-                <h4>Advantages</h4>
-                <ul>
-                    <li>Clear separation of concerns</li>
-                    <li>Smaller binary size</li>
-                    <li>Guaranteed strict conformance (impossible to load non-ISO features)</li>
-                    <li>Can be certified/validated independently</li>
-                </ul>
-
-                <h4>Disadvantages</h4>
-                <ul>
-                    <li>Maintenance burden of two distributions</li>
-                    <li>Potential for divergence</li>
-                    <li>User confusion about which version to use</li>
-                </ul>
-
-                <p><strong>Effort:</strong> 4-6 months for initial split, ongoing maintenance overhead</p>
-
-                <h3>Option 3: Pragma-Based Strict Regions</h3>
-
-                <div class="info-box">
-                    <h4>Concept</h4>
-                    <p>Allow fine-grained control over ISO strictness using pragmas/directives within source files.</p>
-                </div>
-
-                <h4>Example</h4>
-                <pre>:- push_iso_strict(on).
-
-% This section must be strictly conforming
-strictly_conforming_predicate(X, Y) :-
-    atom(X),
-    Y = X.
-
-:- pop_iso_strict.
-
-% Back to allowing extensions
-extended_predicate(X) :-
-    setup_call_cleanup(
-        open(X, read, S),
-        read_term(S, T, []),
-        close(S)
-    ).</pre>
-
-                <h4>Advantages</h4>
-                <ul>
-                    <li>Granular control</li>
-                    <li>Can mix ISO and non-ISO code in same file</li>
-                    <li>Useful for library development targeting portability</li>
-                </ul>
-
-                <p><strong>Effort:</strong> 3-5 months</p>
             </section>
 
             <section id="recommendations">
                 <h2>Recommendations</h2>
 
-                <h3>Recommended Approach: Hybrid Strategy</h3>
+                <h3>Recommended Approach: Phased Implementation</h3>
 
                 <div class="highlight-box">
-                    <p><strong>Phase 1 (3-4 months):</strong> Implement static analysis tool (<code>--check-iso-strict</code> flag)</p>
-                    <p><strong>Phase 2 (6-8 months):</strong> Add runtime strict mode with clear error messages</p>
+                    <p><strong>Phase 1:</strong> Implement static analysis tool (<code>--check-iso-strict</code> flag)</p>
+                    <p><strong>Phase 2:</strong> Add runtime strict mode with clear error messages</p>
                     <p><strong>Phase 3 (Optional):</strong> Consider separate Scryer-ISO distribution if demand exists</p>
                 </div>
 
@@ -855,7 +734,7 @@ extended_predicate(X) :-
                         <li><strong>Current Status:</strong> Conforming processor with extensive extensions (46+ libraries, attributed variables, tabling, CLP, etc.)</li>
                         <li><strong>Syntactic Conformity:</strong> Already achieved (passes all tests)</li>
                         <li><strong>Strict Conformance Gap:</strong> Architectural - needs separation of ISO core from extensions</li>
-                        <li><strong>Implementation Path:</strong> 3-4 months for static analysis MVP, 8-12 months for full runtime strict mode</li>
+                        <li><strong>Implementation Approach:</strong> Phased strategy starting with static analysis, followed by runtime mode</li>
                         <li><strong>Value Proposition:</strong> Primarily benefits academic users, library developers, and those requiring vendor independence</li>
                     </ul>
                 </div>

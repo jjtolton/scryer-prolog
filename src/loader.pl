@@ -221,6 +221,8 @@ load_loop(Stream, Evacuable) :-
        instantiation_error(load/1)
     ;  Term = (?- _Query) ->
        devour_answer_descriptions(Stream, Evacuable)
+    ;  Term = (_ ?- _Query) ->
+       devour_answer_descriptions(Stream, Evacuable)
     ;  LineNum is LinesRead + 1,
        warn_about_singletons(Singletons, LineNum),
        compile_term(Term, Evacuable),
@@ -235,6 +237,8 @@ devour_answer_descriptions(Stream, Evacuable) :-
     ;  var(Term) ->
        instantiation_error(load/1)
     ;  Term = (?- _Query) ->
+       devour_answer_descriptions(Stream, Evacuable)
+    ;  Term = (_ ?- _Query) ->
        devour_answer_descriptions(Stream, Evacuable)
     ;  answer_description(Term) ->
        devour_answer_descriptions(Stream, Evacuable)

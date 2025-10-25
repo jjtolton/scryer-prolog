@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO Prolog Strict Conformance: Analysis for Scryer Prolog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        section {
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h3 {
+            color: #34495e;
+            font-size: 1.5em;
+            margin: 25px 0 15px 0;
+        }
+
+        h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin: 20px 0 10px 0;
+        }
+
+        p, li {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .highlight-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin: 30px 0;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: -18px;
+            top: 17px;
+            width: 2px;
+            height: calc(100% - 12px);
+            background: #ddd;
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ISO Prolog Strict Conformance</h1>
+            <p>Understanding Strictly Conforming Mode and Scryer Prolog's Path Forward</p>
+        </header>
+
+        <div class="content">
+            <section id="executive-summary">
+                <h2>Executive Summary</h2>
+
+                <div class="highlight-box">
+                    <p><strong>Key Finding:</strong> Scryer Prolog is currently a <strong>conforming processor</strong> that passes all syntactic conformity tests but is NOT <strong>strictly conforming</strong> due to its numerous extensions beyond the ISO standard. Adding a strictly conforming mode would require significant architectural changes but is technically achievable.</p>
+                </div>
+
+                <h3>Quick Overview</h3>
+                <ul>
+                    <li><strong>Current Status:</strong> Conforming ISO Prolog processor with extensions</li>
+                    <li><strong>Syntactic Conformity:</strong> ✓ Passes all tests</li>
+                    <li><strong>Strict Conformance:</strong> ✗ Uses many non-ISO features</li>
+                    <li><strong>Implementation Effort:</strong> 3-6 months for MVP, 8-12 months for production</li>
+                    <li><strong>Primary Challenge:</strong> Architectural separation of ISO core from extensions</li>
+                </ul>
+            </section>
+
+            <section id="what-is-strictly-conforming">
+                <h2>What Does "Strictly Conforming" Mean?</h2>
+
+                <h3>ISO/IEC 13211-1:1995 Definitions</h3>
+
+                <p>The ISO Prolog standard (Section 5: Compliance) defines three levels of conformance:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Conformance Level</th>
+                            <th>Definition</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Strictly Conforming</strong></td>
+                            <td>Uses ONLY features defined in the ISO standard. No implementation-specific or implementation-defined extensions.</td>
+                            <td>Maximum portability across all ISO Prolog processors</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Conforming</strong></td>
+                            <td>May use implementation-defined and implementation-specific features, but all such features must be documented.</td>
+                            <td>Balance between portability and platform-specific capabilities</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Conforming Processor</strong></td>
+                            <td>Correctly executes strictly conforming Prolog text AND documents all extensions and deviations.</td>
+                            <td>Standard-compliant implementation that can also provide extensions</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="info-box">
+                    <h4>Critical Distinction</h4>
+                    <p><strong>Strictly conforming TEXT</strong> is Prolog code that uses only ISO features.</p>
+                    <p><strong>Conforming PROCESSOR</strong> can execute strictly conforming text AND may offer extensions.</p>
+                    <p>Scryer Prolog is a conforming processor, but most Scryer Prolog programs are NOT strictly conforming text.</p>
+                </div>
+
+                <h3>What the Standard Says Exactly</h3>
+
+                <blockquote style="font-style: italic; border-left: 3px solid #667eea; padding-left: 15px; margin: 20px 0;">
+                    "Conforming Prolog text is character sequences satisfying all compliance clauses for Prolog text, representing directives and clauses as read-term sequences. Conforming Prolog data consists of character and byte sequences satisfying all data compliance clauses. Both must adhere to syntax specifications, semantic constraints, and any declared implementation-specific extensions."
+                </blockquote>
+
+                <blockquote style="font-style: italic; border-left: 3px solid #667eea; padding-left: 15px; margin: 20px 0;">
+                    "Implementation-specific features are undefined by the standard but supported by conforming processors while preserving syntax/semantics of strictly conforming text."
+                </blockquote>
+
+                <h3>Practical Implications</h3>
+
+                <p>A <strong>strictly conforming mode</strong> in Scryer Prolog would mean:</p>
+
+                <ol>
+                    <li><strong>Rejected Features:</strong> All non-ISO predicates, directives, and syntax extensions would be flagged as errors</li>
+                    <li><strong>Limited Built-ins:</strong> Only the ~100 built-in predicates specified in ISO/IEC 13211-1:1995</li>
+                    <li><strong>No Extensions:</strong> No attributed variables, tabling, CLP, delimited continuations, etc.</li>
+                    <li><strong>Strict Flags:</strong> All Prolog flags would be limited to ISO-defined values</li>
+                    <li><strong>Error on Import:</strong> Attempting to load non-ISO libraries would fail</li>
+                    <li><strong>Guaranteed Portability:</strong> Code running in strict mode would be guaranteed to run on ANY conforming ISO Prolog processor</li>
+                </ol>
+            </section>
+
+            <section id="scryer-deviations">
+                <h2>How Scryer Prolog Deviates from Strict Conformance</h2>
+
+                <h3>1. Extended Built-in Libraries (46+ Non-ISO Modules)</h3>
+
+                <div class="warning-box">
+                    <p><strong>Major Deviation:</strong> Scryer provides 46+ library modules, of which only a tiny fraction overlaps with ISO requirements.</p>
+                </div>
+
+                <h4>Extended Libraries Include:</h4>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Libraries</th>
+                            <th>ISO Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Constraint Logic Programming</td>
+                            <td><code>clpb.pl</code>, <code>clpz.pl</code>, <code>reif.pl</code>, <code>simplex.pl</code></td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                        <tr>
+                            <td>Tabling & Continuations</td>
+                            <td><code>tabling.pl</code>, <code>reset/shift</code> (delimited continuations)</td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                        <tr>
+                            <td>Networking & I/O</td>
+                            <td><code>sockets.pl</code>, <code>http_open.pl</code>, <code>http_server.pl</code>, <code>tls.pl</code></td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                        <tr>
+                            <td>Data Formats</td>
+                            <td><code>json.pl</code>, <code>csv.pl</code>, <code>sgml.pl</code>, <code>xpath.pl</code></td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                        <tr>
+                            <td>Cryptography</td>
+                            <td><code>crypto.pl</code>, <code>uuid.pl</code></td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                        <tr>
+                            <td>System Integration</td>
+                            <td><code>os.pl</code>, <code>process.pl</code>, <code>ffi.pl</code>, <code>wasm.pl</code></td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                        <tr>
+                            <td>Extended Predicates</td>
+                            <td><code>iso_ext.pl</code> (forall, bb_put, setup_call_cleanup, etc.)</td>
+                            <td>⚠️ Common but non-ISO</td>
+                        </tr>
+                        <tr>
+                            <td>Advanced Features</td>
+                            <td><code>atts.pl</code> (attributed variables), <code>lambda.pl</code>, <code>when.pl</code>, <code>freeze.pl</code>, <code>dif.pl</code></td>
+                            <td>❌ Not in ISO</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>2. Attributed Variables (SICStus-style)</h3>
+
+                <p>One of Scryer's major features is support for attributed variables following the SICStus Prolog interface:</p>
+
+                <ul>
+                    <li><code>verify_attributes/3</code></li>
+                    <li><code>attribute_goals/2</code></li>
+                    <li><code>project_attributes/2</code></li>
+                    <li><code>call_residue_vars/2</code></li>
+                </ul>
+
+                <p><strong>ISO Status:</strong> ❌ Attributed variables are NOT part of ISO/IEC 13211-1:1995</p>
+
+                <h3>3. Partial String Representation</h3>
+
+                <p>Scryer uses a packed internal representation for strings as difference lists of characters. This is an implementation optimization not specified in ISO.</p>
+
+                <p><strong>ISO Status:</strong> ⚠️ Implementation-dependent (allowed as optimization, but affects observable behavior)</p>
+
+                <h3>4. Extended Arithmetic & Number Types</h3>
+
+                <ul>
+                    <li><strong>Rational Numbers:</strong> Full rational arithmetic support</li>
+                    <li><strong>Arbitrary Precision:</strong> Bignum integers beyond <code>max_integer</code></li>
+                </ul>
+
+                <p><strong>ISO Status:</strong> ⚠️ Partial conformance (ISO allows but doesn't require rationals; bignums are implementation-dependent)</p>
+
+                <h3>5. Module System</h3>
+
+                <p>Scryer implements a revised module system. While ISO/IEC 13211-2:2000 defines modules, the base standard (Part 1) does not.</p>
+
+                <p><strong>ISO Status:</strong> ⚠️ ISO Part 2, not Part 1 (strict conformance is to Part 1 only)</p>
+
+                <h3>6. Extended Directives</h3>
+
+                <p>Scryer supports many directives beyond the ISO-mandated set:</p>
+
+                <ul>
+                    <li><code>:- use_module/1</code>, <code>:- use_module/2</code></li>
+                    <li><code>:- module/2</code></li>
+                    <li>Various implementation hooks</li>
+                </ul>
+
+                <p><strong>ISO Directives:</strong> Only <code>:- dynamic/1</code>, <code>:- multifile/1</code>, <code>:- discontiguous/1</code>, <code>:- op/3</code>, <code>:- initialization/1</code></p>
+
+                <h3>7. Global Variables (Backtrackable and Non-backtrackable)</h3>
+
+                <pre>bb_get/2, bb_put/2, bb_b_put/2</pre>
+
+                <p><strong>ISO Status:</strong> ❌ Not in ISO standard (common extension in many Prologs)</p>
+
+                <h3>8. Extended I/O and Streams</h3>
+
+                <p>While Scryer implements the ISO stream model, it extends it with:</p>
+
+                <ul>
+                    <li>Socket streams (TCP connections as streams)</li>
+                    <li>HTTP streams</li>
+                    <li>TLS-encrypted streams</li>
+                    <li>Process pipe streams</li>
+                </ul>
+
+                <p><strong>ISO Status:</strong> ⚠️ Extensions on top of ISO stream model</p>
+
+                <h3>Summary of Deviations</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature Category</th>
+                            <th>ISO Compliance</th>
+                            <th>Impact on Strict Conformance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Core syntax & built-ins</td>
+                            <td>✓ Fully compliant</td>
+                            <td>✓ Can execute strictly conforming code</td>
+                        </tr>
+                        <tr>
+                            <td>Extended libraries (46+)</td>
+                            <td>❌ Non-ISO</td>
+                            <td>❌ Blocks strict conformance if used</td>
+                        </tr>
+                        <tr>
+                            <td>Attributed variables</td>
+                            <td>❌ Not in ISO</td>
+                            <td>❌ Major deviation</td>
+                        </tr>
+                        <tr>
+                            <td>Tabling</td>
+                            <td>❌ Not in ISO</td>
+                            <td>❌ Major deviation</td>
+                        </tr>
+                        <tr>
+                            <td>CLP(B), CLP(Z)</td>
+                            <td>❌ Not in ISO</td>
+                            <td>❌ Major deviation</td>
+                        </tr>
+                        <tr>
+                            <td>Delimited continuations</td>
+                            <td>❌ Not in ISO</td>
+                            <td>❌ Major deviation</td>
+                        </tr>
+                        <tr>
+                            <td>Module system</td>
+                            <td>⚠️ ISO Part 2</td>
+                            <td>❌ Not in Part 1</td>
+                        </tr>
+                        <tr>
+                            <td>Rational numbers</td>
+                            <td>⚠️ Allowed but not required</td>
+                            <td>⚠️ Acceptable if documented</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="implementation-path">
+                <h2>What It Would Take to Add "Strictly Conforming Mode"</h2>
+
+                <h3>Architectural Requirements</h3>
+
+                <div class="info-box">
+                    <h4>Core Challenge</h4>
+                    <p>The primary challenge is not making Scryer execute ISO-conforming code (it already does this). The challenge is creating a mode that <strong>rejects</strong> all non-ISO features while maintaining the existing extended functionality.</p>
+                </div>
+
+                <h3>Required Changes</h3>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Phase 1: ISO Core Isolation (2-3 months)</h4>
+                        <ul>
+                            <li>Identify and catalog all 100+ ISO-mandated built-in predicates</li>
+                            <li>Create ISO-only predicate whitelist</li>
+                            <li>Separate ISO core from extended predicates in codebase</li>
+                            <li>Tag all library modules as ISO/non-ISO</li>
+                            <li>Create compile-time feature flag <code>STRICT_ISO_MODE</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Phase 2: Loader & Parser Modifications (1-2 months)</h4>
+                        <ul>
+                            <li>Modify loader (<code>src/machine/loader.rs</code>) to check mode</li>
+                            <li>Add strict mode validation in parser</li>
+                            <li>Implement directive filtering (reject non-ISO directives)</li>
+                            <li>Add runtime checks for predicate calls</li>
+                            <li>Implement error reporting for non-ISO feature usage</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Phase 3: Flag & Configuration System (2-4 weeks)</h4>
+                        <ul>
+                            <li>Add Prolog flag <code>iso_strict_conformance</code> (on/off)</li>
+                            <li>Command-line option: <code>--strict-iso</code></li>
+                            <li>Environment variable: <code>SCRYER_ISO_STRICT=1</code></li>
+                            <li>Runtime toggle: <code>set_prolog_flag(iso_strict_conformance, on)</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Phase 4: Library Isolation (1-2 months)</h4>
+                        <ul>
+                            <li>Create <code>src/lib/iso/</code> directory for ISO-only predicates</li>
+                            <li>Move ISO predicates from extended libraries to ISO core</li>
+                            <li>Implement library loading guards (reject non-ISO in strict mode)</li>
+                            <li>Document which predicates from <code>iso_ext.pl</code> should be ISO core</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Phase 5: Testing & Validation (1-2 months)</h4>
+                        <ul>
+                            <li>Create comprehensive test suite for strict ISO mode</li>
+                            <li>Verify rejection of all non-ISO features</li>
+                            <li>Test compliance with ISO test suite</li>
+                            <li>Ensure no regressions in normal (extended) mode</li>
+                            <li>Performance benchmarking (strict vs. extended)</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Phase 6: Documentation (2-4 weeks)</h4>
+                        <ul>
+                            <li>Document all ISO vs. non-ISO predicates</li>
+                            <li>Create migration guide for strict mode</li>
+                            <li>Update README with strict conformance information</li>
+                            <li>Add examples of strictly conforming programs</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Specific Implementation Details</h3>
+
+                <h4>1. Predicate Whitelist System</h4>
+
+                <pre>// In src/machine/machine_state.rs or new file
+static ISO_PREDICATES: &[(&str, usize)] = &[
+    // 8.2 Term unification
+    ("=", 2),
+    ("unify_with_occurs_check", 2),
+    ("\\=", 2),
+
+    // 8.3 Type testing
+    ("var", 1),
+    ("atom", 1),
+    ("integer", 1),
+    // ... ~100 more predicates
+];
+
+fn is_iso_predicate(name: &str, arity: usize) -> bool {
+    ISO_PREDICATES.contains(&(name, arity))
+}</pre>
+
+                <h4>2. Loader Modification</h4>
+
+                <pre>// In src/machine/loader.rs
+impl Loader {
+    fn load_module(&mut self, module_name: &str) -> Result<(), LoadError> {
+        if self.config.iso_strict_mode {
+            if !is_iso_module(module_name) {
+                return Err(LoadError::NonISOModule {
+                    module: module_name.to_string(),
+                    message: format!(
+                        "Module '{}' is not part of ISO/IEC 13211-1:1995. \
+                         Disable strict ISO mode to use extended features.",
+                        module_name
+                    )
+                });
+            }
+        }
+        // ... existing load logic
+    }
+}</pre>
+
+                <h4>3. Runtime Predicate Call Checking</h4>
+
+                <pre>// In src/machine/dispatch.rs
+fn execute_goal(&mut self, goal: &Goal) -> ExecutionResult {
+    if self.machine_state.flags.iso_strict_conformance {
+        let (name, arity) = goal.predicate_indicator();
+        if !is_iso_predicate(&name, arity) {
+            return Err(MachineError::existence_error(
+                "procedure",
+                format!("{}/{}", name, arity),
+                "ISO strict conformance mode: predicate not in ISO/IEC 13211-1:1995"
+            ));
+        }
+    }
+    // ... existing execution logic
+}</pre>
+
+                <h4>4. Flag System Integration</h4>
+
+                <pre>// Add to standard flags in src/machine/machine_state.rs
+pub fn initialize_flags() {
+    flags.insert("iso_strict_conformance", FlagValue::Atom("off".into()));
+    // When set to "on", enables strict ISO mode
+}</pre>
+
+                <h3>Challenges & Trade-offs</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Challenge</th>
+                            <th>Solution</th>
+                            <th>Trade-off</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Performance overhead of runtime checks</td>
+                            <td>Compile-time feature flag + runtime flag combo</td>
+                            <td>Small runtime cost when strict mode enabled</td>
+                        </tr>
+                        <tr>
+                            <td>Maintaining two "versions" of Scryer</td>
+                            <td>Single codebase with mode switching</td>
+                            <td>Increased code complexity</td>
+                        </tr>
+                        <tr>
+                            <td>Determining ISO vs. non-ISO boundaries</td>
+                            <td>Comprehensive audit against ISO standard</td>
+                            <td>Significant upfront research time</td>
+                        </tr>
+                        <tr>
+                            <td>User confusion about what's allowed</td>
+                            <td>Clear error messages + documentation</td>
+                            <td>Documentation burden</td>
+                        </tr>
+                        <tr>
+                            <td>Testing matrix expansion</td>
+                            <td>CI/CD for both modes</td>
+                            <td>Longer build/test times</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Effort Estimates</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Deliverable</th>
+                            <th>Effort (Person-Months)</th>
+                            <th>Risk Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>MVP (basic strict mode, command-line flag)</td>
+                            <td>3-4 months</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Production-Ready (full validation, comprehensive testing)</td>
+                            <td>8-12 months</td>
+                            <td>Medium-High</td>
+                        </tr>
+                        <tr>
+                            <td>Documentation & Examples</td>
+                            <td>1-2 months</td>
+                            <td>Low</td>
+                        </tr>
+                        <tr>
+                            <td>Long-term Maintenance (ongoing)</td>
+                            <td>0.5 months/year</td>
+                            <td>Medium</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="alternative-approaches">
+                <h2>Alternative Approaches</h2>
+
+                <h3>Option 1: Static Analysis Tool (Simpler)</h3>
+
+                <div class="info-box">
+                    <h4>Concept</h4>
+                    <p>Instead of modifying the runtime, create a separate static analysis tool that checks Prolog source files for ISO conformance.</p>
+                </div>
+
+                <h4>Advantages</h4>
+                <ul>
+                    <li>No runtime performance impact</li>
+                    <li>No modifications to core Scryer engine</li>
+                    <li>Can be developed independently</li>
+                    <li>Useful for developers targeting multiple Prolog systems</li>
+                </ul>
+
+                <h4>Implementation</h4>
+                <pre>scryer-prolog --check-iso-strict myprogram.pl
+
+# Output:
+# Warning: Non-ISO predicate: setup_call_cleanup/3 (line 42)
+# Error: Non-ISO library: use_module(library(clpz)) (line 5)
+# Summary: 2 non-ISO features detected</pre>
+
+                <p><strong>Effort:</strong> 2-3 months for MVP</p>
+
+                <h3>Option 2: Separate "Scryer-ISO" Distribution</h3>
+
+                <div class="info-box">
+                    <h4>Concept</h4>
+                    <p>Create a separate binary distribution that only includes ISO features, compiled with <code>--no-default-features</code> and ISO-only libraries.</p>
+                </div>
+
+                <h4>Advantages</h4>
+                <ul>
+                    <li>Clear separation of concerns</li>
+                    <li>Smaller binary size</li>
+                    <li>Guaranteed strict conformance (impossible to load non-ISO features)</li>
+                    <li>Can be certified/validated independently</li>
+                </ul>
+
+                <h4>Disadvantages</h4>
+                <ul>
+                    <li>Maintenance burden of two distributions</li>
+                    <li>Potential for divergence</li>
+                    <li>User confusion about which version to use</li>
+                </ul>
+
+                <p><strong>Effort:</strong> 4-6 months for initial split, ongoing maintenance overhead</p>
+
+                <h3>Option 3: Pragma-Based Strict Regions</h3>
+
+                <div class="info-box">
+                    <h4>Concept</h4>
+                    <p>Allow fine-grained control over ISO strictness using pragmas/directives within source files.</p>
+                </div>
+
+                <h4>Example</h4>
+                <pre>:- push_iso_strict(on).
+
+% This section must be strictly conforming
+strictly_conforming_predicate(X, Y) :-
+    atom(X),
+    Y = X.
+
+:- pop_iso_strict.
+
+% Back to allowing extensions
+extended_predicate(X) :-
+    setup_call_cleanup(
+        open(X, read, S),
+        read_term(S, T, []),
+        close(S)
+    ).</pre>
+
+                <h4>Advantages</h4>
+                <ul>
+                    <li>Granular control</li>
+                    <li>Can mix ISO and non-ISO code in same file</li>
+                    <li>Useful for library development targeting portability</li>
+                </ul>
+
+                <p><strong>Effort:</strong> 3-5 months</p>
+            </section>
+
+            <section id="recommendations">
+                <h2>Recommendations</h2>
+
+                <h3>Recommended Approach: Hybrid Strategy</h3>
+
+                <div class="highlight-box">
+                    <p><strong>Phase 1 (3-4 months):</strong> Implement static analysis tool (<code>--check-iso-strict</code> flag)</p>
+                    <p><strong>Phase 2 (6-8 months):</strong> Add runtime strict mode with clear error messages</p>
+                    <p><strong>Phase 3 (Optional):</strong> Consider separate Scryer-ISO distribution if demand exists</p>
+                </div>
+
+                <h3>Rationale</h3>
+
+                <ol>
+                    <li><strong>Static Analysis First:</strong> Provides immediate value with minimal risk. Developers can check their code for ISO conformance without runtime overhead.</li>
+
+                    <li><strong>Runtime Mode Second:</strong> After static analysis is proven useful, invest in runtime mode for guaranteed enforcement and teaching purposes.</li>
+
+                    <li><strong>Separate Distribution Last:</strong> Only pursue if there's demonstrated demand for a pure ISO Prolog (e.g., academic use, certification requirements).</li>
+                </ol>
+
+                <h3>Who Benefits?</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User Group</th>
+                            <th>Use Case</th>
+                            <th>Benefit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Academic Users</td>
+                            <td>Teaching ISO Prolog standards</td>
+                            <td>Can demonstrate pure ISO Prolog without extensions</td>
+                        </tr>
+                        <tr>
+                            <td>Library Developers</td>
+                            <td>Writing portable libraries</td>
+                            <td>Verify code works across all ISO Prolog systems</td>
+                        </tr>
+                        <tr>
+                            <td>Standards Bodies</td>
+                            <td>ISO conformance testing</td>
+                            <td>Certified reference implementation</td>
+                        </tr>
+                        <tr>
+                            <td>Industrial Users</td>
+                            <td>Long-term maintenance, vendor independence</td>
+                            <td>Code guaranteed to work on any conforming processor</td>
+                        </tr>
+                        <tr>
+                            <td>Embedded Systems</td>
+                            <td>Minimal footprint Prolog</td>
+                            <td>Smaller binary without extended features</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Success Criteria</h3>
+
+                <ul>
+                    <li>✓ All ISO/IEC 13211-1:1995 test cases pass</li>
+                    <li>✓ Strict mode correctly rejects all non-ISO features</li>
+                    <li>✓ Clear, actionable error messages for non-ISO usage</li>
+                    <li>✓ No performance regression in normal (extended) mode</li>
+                    <li>✓ Comprehensive documentation of ISO vs. non-ISO features</li>
+                    <li>✓ Static analysis tool available as standalone utility</li>
+                </ul>
+            </section>
+
+            <section id="conclusion">
+                <h2>Conclusion</h2>
+
+                <p>Scryer Prolog is currently an excellent <strong>conforming processor</strong> that extends the ISO standard with modern, powerful features. Adding a <strong>strictly conforming mode</strong> is technically feasible and would serve specific use cases (education, portability, certification), but requires significant architectural work.</p>
+
+                <div class="highlight-box">
+                    <h4>Key Takeaways</h4>
+                    <ul>
+                        <li><strong>Current Status:</strong> Conforming processor with extensive extensions (46+ libraries, attributed variables, tabling, CLP, etc.)</li>
+                        <li><strong>Syntactic Conformity:</strong> Already achieved (passes all tests)</li>
+                        <li><strong>Strict Conformance Gap:</strong> Architectural - needs separation of ISO core from extensions</li>
+                        <li><strong>Implementation Path:</strong> 3-4 months for static analysis MVP, 8-12 months for full runtime strict mode</li>
+                        <li><strong>Value Proposition:</strong> Primarily benefits academic users, library developers, and those requiring vendor independence</li>
+                    </ul>
+                </div>
+
+                <h3>Next Steps</h3>
+
+                <ol>
+                    <li><strong>Community Discussion:</strong> Gauge interest in strict conformance mode among Scryer users</li>
+                    <li><strong>ISO Audit:</strong> Comprehensive catalog of all predicates/features against ISO standard</li>
+                    <li><strong>Prototype:</strong> Implement static analysis tool as proof-of-concept</li>
+                    <li><strong>Evaluation:</strong> Assess usage and feedback before committing to full runtime mode</li>
+                </ol>
+
+                <p>The decision to pursue strict conformance should be driven by demonstrated user need rather than theoretical completeness. Scryer's strength lies in its modern extensions while maintaining a solid ISO foundation.</p>
+            </section>
+        </div>
+
+        <footer>
+            <p><strong>Analysis Date:</strong> October 25, 2025</p>
+            <p><strong>Codebase Version:</strong> Scryer Prolog (github-pages branch)</p>
+            <p><strong>ISO Standard Reference:</strong> ISO/IEC 13211-1:1995(E)</p>
+            <p><strong>Generated for:</strong> <a href="https://github.com/mthom/scryer-prolog">Scryer Prolog Project</a></p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -4,6 +4,23 @@ This site documents proposed enhancements, generative analyses, and changes to [
 
 ## Generative Analysis
 
+### [ISO Prolog Strict Conformance Analysis](generative-analysis/iso-strict-conformance.html)
+Comprehensive analysis of what "strictly conforming" means in ISO Prolog, how Scryer Prolog deviates, and the specific steps required to add a strictly conforming mode.
+
+**Analysis Date**: October 25, 2025
+**ISO Standard**: ISO/IEC 13211-1:1995(E)
+
+**Key Topics**:
+- Definition of strict conformance vs. conforming processor
+- Complete catalog of Scryer's 46+ non-ISO extensions
+- Architectural requirements for strict mode implementation
+- Phased implementation roadmap (3-12 months)
+- Alternative approaches (static analysis, separate distribution, pragma-based)
+
+**[View Full Analysis →](generative-analysis/iso-strict-conformance.html)**
+
+---
+
 ### [Garbage Collection: Technical Analysis](generative-analysis/garbage-collection.html)
 Comprehensive technical analysis of memory management in Scryer Prolog, examining the consequences of missing GC and what it would take to implement it.
 

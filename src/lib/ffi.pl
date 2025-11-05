@@ -1,4 +1,4 @@
-:- module(ffi, [use_foreign_module/2, foreign_struct/2, with_locals/2, allocate/4, deallocate/3, read_ptr/3, array_type/3]).
+:- module(ffi, [use_foreign_module/2, use_foreign_module/3, foreign_struct/2, with_locals/2, allocate/4, deallocate/3, read_ptr/3, array_type/3]).
 
 /** Foreign Function Interface
 
@@ -7,9 +7,37 @@ It uses [libffi](https://sourceware.org/libffi/) under the hood. The bridge is v
 and is very unsafe and should be used with care. FFI isn't the only way to communicate with
 the outside world in Prolog: sockets, pipes and HTTP may be good enough for your use case.
 
-The main predicate is `use_foreign_module/2`. It takes a library name (which depending on the
-operating system could be a `.so`, `.dylib` or `.dll` file). and a list of functions. Each
-function is defined by its name, a list of the type of the arguments, and the return argument.
+The main predicate is `use_foreign_module/2` or `use_foreign_module/3` (with options). It takes
+a library name (which depending on the operating system could be a `.so`, `.dylib` or `.dll` file),
+a list of functions, and optionally a list of options. Each function is defined by its name, a
+list of the type of the arguments, and the return argument.
+
+## Library Loading Modes
+
+By default, shared libraries are loaded with the `RTLD_LOCAL` flag, which prevents symbol
+pollution and conflicts between libraries. For most use cases, this is the correct behavior.
+
+However, certain use cases require the `RTLD_GLOBAL` flag, which makes library symbols available
+for resolution by subsequently loaded shared libraries:
+
+- **Python C extensions**: When embedding Python, C extension modules (NumPy, SciPy, pandas,
+  standard library modules like `math`, `socket`, etc.) need to resolve symbols from libpython.
+  Without RTLD_GLOBAL, these imports fail with "undefined symbol" errors.
+
+- **Plugin architectures**: Libraries that dynamically load plugins which depend on symbols
+  from the main library.
+
+To use RTLD_GLOBAL loading, pass `[flags([rtld_global])]` as the third argument to
+`use_foreign_module/3`:
+
+```prolog
+use_foreign_module('/path/libpython3.11.so', [...], [flags([rtld_global])]).
+```
+
+On Windows, the loading mode flag has no effect as Windows uses a different library loading model.
+
+**Note**: Using RTLD_GLOBAL can cause symbol conflicts if multiple libraries export the same
+symbol names. Only use it when necessary.
 
 For each function in the list a predicate of the same name is generated in the ffi module which
 can then be used to call the native code.
@@ -124,7 +152,31 @@ foreign_struct(Name, Elements) :-
 %   for other return types there will be an additional out parameter.
 %
 use_foreign_module(LibName, Predicates) :-
-    '$load_foreign_lib'(LibName, Predicates),
+    use_foreign_module(LibName, Predicates, []).
+
+%% use_foreign_module(+LibName, +Predicates, +Options)
+%
+%   Load a foreign library with options.
+%
+%   Options:
+%   - flags(FlagList): List of loading flags. Supported flags:
+%     - rtld_global: On Unix systems, load library with RTLD_GLOBAL flag, making
+%       symbols available for resolution by subsequently loaded libraries.
+%       Required for Python C extensions (NumPy, SciPy, pandas, etc.) and
+%       plugin architectures where plugins depend on main library symbols.
+%       Warning: May cause symbol conflicts if libraries export identical names.
+%
+%   Examples:
+%   ```
+%   % Default (RTLD_LOCAL)
+%   use_foreign_module('lib.so', [foo([int], void)], []).
+%
+%   % With RTLD_GLOBAL for Python embedding
+%   use_foreign_module('/path/libpython3.11.so', [...], [flags([rtld_global])]).
+%   ```
+%
+use_foreign_module(LibName, Predicates, Options) :-
+    '$load_foreign_lib'(LibName, Predicates, Options),
     maplist(assert_predicate, Predicates).
 
 assert_predicate(PredicateDefinition) :-

@@ -5205,13 +5205,58 @@ impl Machine {
     #[inline(always)]
     pub(crate) fn load_foreign_lib(&mut self) -> CallResult {
         fn stub_gen() -> MachineStub {
-            functor_stub(atom!("$load_foreign_lib"), 2)
+            functor_stub(atom!("$load_foreign_lib"), 3)
         }
 
         #[cfg(feature = "ffi")]
         {
             let library_name = self.deref_register(1);
             let args_reg = self.deref_register(2);
+            let options_reg = self.deref_register(3);
+            let mut options = LibraryLoadOptions::default();
+
+            if let Ok(option_addrs) = self.machine_st.try_from_list(options_reg, stub_gen) {
+                for option_cell in option_addrs {
+                    let option_name = read_heap_cell!(option_cell,
+                        (HeapCellValueTag::Str, s) => {
+                            cell_as_atom_cell!(self.machine_st.heap[s]).get_name()
+                        }
+                        _ => {
+                            continue;
+                        }
+                    );
+
+                    if option_name != atom!("flags") {
+                        continue;
+                    }
+
+                    let flag_list_cell = read_heap_cell!(option_cell,
+                        (HeapCellValueTag::Str, s) => {
+                            self.machine_st.heap[s + 1]
+                        }
+                        _ => {
+                            continue;
+                        }
+                    );
+
+                    let Ok(flag_addrs) = self.machine_st.try_from_list(flag_list_cell, stub_gen) else {
+                        continue;
+                    };
+
+                    for flag_cell in flag_addrs {
+                        read_heap_cell!(flag_cell,
+                            (HeapCellValueTag::Atom, (name, arity)) => {
+                                debug_assert_eq!(arity, 0);
+                                match name {
+                                    atom!("rtld_global") => options.use_global = true,
+                                    _ => {}
+                                }
+                            }
+                            _ => {}
+                        );
+                    }
+                }
+            }
             if let Some(library_name) = self.machine_st.value_to_str_like(library_name) {
                 match self.machine_st.try_from_list(args_reg, stub_gen) {
                     Ok(addrs) => {
@@ -5245,7 +5290,7 @@ impl Machine {
                         }
                         if self
                             .foreign_function_table
-                            .load_library(&library_name.as_str(), &functions)
+                            .load_library(&library_name.as_str(), &functions, &options)
                             .is_err()
                         {
                             self.machine_st.fail = true;

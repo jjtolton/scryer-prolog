@@ -45,6 +45,26 @@ pub struct FunctionDefinition {
     pub args: Vec<Atom>,
 }
 
+/// Options for loading foreign libraries
+#[derive(Debug, Clone)]
+pub struct LibraryLoadOptions {
+    /// Load library with RTLD_GLOBAL flag (Unix only)
+    /// Makes symbols available for subsequently loaded libraries
+    pub use_global: bool,
+    // Future options can be added here:
+    // pub lazy_binding: bool,
+    // pub deepbind: bool,
+    // pub nodelete: bool,
+}
+
+impl Default for LibraryLoadOptions {
+    fn default() -> Self {
+        Self {
+            use_global: false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct FunctionImpl {
     cif: Cif,
@@ -676,9 +696,29 @@ impl ForeignFunctionTable {
         &mut self,
         library_name: &str,
         functions: &Vec<FunctionDefinition>,
+        options: &LibraryLoadOptions,
     ) -> Result<(), Box<dyn Error>> {
         let mut ff_table: ForeignFunctionTable = Default::default();
-        let library = unsafe { Library::new(library_name) }?;
+
+        let library = unsafe {
+            #[cfg(unix)]
+            {
+                if options.use_global {
+                    use libloading::os::unix;
+                    let unix_lib = unix::Library::open(
+                        Some(library_name),
+                        unix::RTLD_LAZY | unix::RTLD_GLOBAL
+                    )?;
+                    Library::from(unix_lib)
+                } else {
+                    Library::new(library_name)?
+                }
+            }
+            #[cfg(not(unix))]
+            {
+                Library::new(library_name)?
+            }
+        };
         for function in functions {
             let symbol_name: CString = CString::new(&*function.name.as_str())?;
             let code_ptr: Symbol<*mut c_void> =

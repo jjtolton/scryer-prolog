@@ -568,7 +568,9 @@ gather_equations([Var = Value | Pairs], OrigVarList, Goals) :-
 
 halt_on_error_enabled :-
     raw_argv(Args),
-    member("--halt-on-error", Args).
+    (   member("--halt-on-error", Args)
+    ;   member("--always-halt", Args)
+    ).
 
 always_halt_enabled :-
     raw_argv(Args),

@@ -53,7 +53,10 @@ start_repl :-
     ;   true
     ),
     (\+ disabled_init_file -> load_scryerrc ; true),
-    repl.
+    (   always_halt_enabled ->
+        halt(0)
+    ;   repl
+    ).
 
 args_consults_goals([], [], []).
 args_consults_goals([Arg|Args], Consults, Goals) :-
@@ -71,7 +74,10 @@ delegate_task([], Goals0) :-
     args_consults_goals(Goals1, Consults, Goals),
     run_goals(Consults),
     run_goals(Goals),
-    repl.
+    (   always_halt_enabled ->
+        halt(0)
+    ;   repl
+    ).
 
 delegate_task([Arg0|Args], Goals0) :-
     (   (   member(Arg0, ["-h", "--help"]) -> print_help
@@ -80,6 +86,7 @@ delegate_task([Arg0|Args], Goals0) :-
         ;   member(Arg0, ["-f"]) -> disable_init_file
         ;   member(Arg0, ["--no-add-history"]) -> ignore_machine_arg
         ;   member(Arg0, ["--halt-on-error"]) -> ignore_machine_arg
+        ;   member(Arg0, ["--always-halt"]) -> ignore_machine_arg
         ),
         !,
         delegate_task(Args, Goals0)
@@ -103,6 +110,8 @@ print_help :-
     write('Prevent adding input to history file (~/.scryer_history)'), nl,
     write('   --halt-on-error        '),
     write('Terminate with exit code 1 on errors instead of entering REPL'), nl,
+    write('   --always-halt          '),
+    write('Always exit after execution instead of entering REPL'), nl,
     % write('                        '),
     halt.
 
@@ -560,6 +569,10 @@ gather_equations([Var = Value | Pairs], OrigVarList, Goals) :-
 halt_on_error_enabled :-
     raw_argv(Args),
     member("--halt-on-error", Args).
+
+always_halt_enabled :-
+    raw_argv(Args),
+    member("--always-halt", Args).
 
 print_exception(E) :-
     (  E == error('$interrupt_thrown', repl) -> nl % print the

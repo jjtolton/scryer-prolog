@@ -44,9 +44,11 @@ Z = 261046.
 **Status**: Testing
 **Branch**: `double-bar`
 
-Implementation of the `||` operator for partial string lists following ISO Prolog standards.
+Implementation of the `||` operator for partial string lists following ISO Prolog standards. Supports all three `double_quotes` modes: `chars`, `codes`, and `atom`.
 
 **Examples**:
+
+*Chars mode (default)*:
 ```prolog
 ?- S = "hello" || Rest.
 S = [h,e,l,l,o|Rest].
@@ -55,12 +57,43 @@ S = [h,e,l,l,o|Rest].
 X = Y, Y = [].
 ```
 
+*Codes mode*:
+```prolog
+?- set_prolog_flag(double_quotes, codes).
+true.
+
+?- S = "abc" || Rest.
+S = [97,98,99|Rest].
+
+?- "hello" || [32,119,111,114,108,100] = Greeting.
+Greeting = [104,101,108,108,111,32,119,111,114,108,100].
+```
+
+*Atom mode*:
+```prolog
+?- set_prolog_flag(double_quotes, atom).
+true.
+
+?- S = "test" || Tail.
+S = [t,e,s,t|Tail].
+```
+
+**Recent Updates**:
+- ✅ Added full support for codes mode (commit 4e1eb9e9)
+- ✅ Handles Term::Cons structures from codes-mode strings
+- ✅ Proper tail replacement in codes-mode lists
+- ✅ Comprehensive test suite (56 tests covering all modes)
+
 **Benefits**:
 - ISO Prolog compliance
 - Cleaner syntax for partial strings
 - Better pattern matching for string processing
+- Works seamlessly with all double_quotes settings
+- Proper Unicode support in all modes
 
 **Reference**: [ISO Prolog Double Bar Specification](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar)
+
+**Related Issue**: [#3142](https://github.com/mthom/scryer-prolog/issues/3142)
 
 ---
 
@@ -388,17 +421,17 @@ Enables loading shared libraries with global symbol visibility, required for som
 ## Testing Status
 
 All features in this branch have been:
-- ✅ Locally tested in the hotness branch
+- ✅ Locally tested in the bleeding branch
 - ✅ Compiled successfully
-- ✅ Integration tested with other hotness features
+- ✅ Integration tested with other bleeding features
 - 🔄 Awaiting review and feedback before master merge
 
-## Building the Hotness Branch
+## Building the Bleeding Branch
 
 ```bash
 git clone https://github.com/jjtolton/scryer-prolog.git
 cd scryer-prolog
-git checkout hotness
+git checkout bleeding
 cargo build --release
 ./target/release/scryer-prolog --help
 ```
@@ -407,7 +440,7 @@ cargo build --release
 
 If you'd like to test these features or provide feedback:
 
-1. Check out the hotness branch
+1. Check out the bleeding branch
 2. Test the features in your use case
 3. Report issues or feedback on the relevant PR
 4. Help us get these features ready for master!

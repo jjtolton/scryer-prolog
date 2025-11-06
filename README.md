@@ -14,9 +14,9 @@ The homepage of the project is: [**https://www.scryer.pl**](https://www.scryer.p
 
 ![Scryer Logo: Cryer](logo/scryer.png)
 
-## 🔥 Hotness Branch - Experimental Features
+## 🔥 Bleeding Edge Branch - Experimental Features
 
-This branch (`hotness`) includes cutting-edge features and improvements not yet in the main branch:
+This branch (`bleeding`) includes cutting-edge features and improvements not yet in the main branch:
 
 ### Parser & Syntax Enhancements
 
@@ -59,9 +59,9 @@ This branch (`hotness`) includes cutting-edge features and improvements not yet 
 
 - **[PR #3144](https://github.com/mthom/scryer-prolog/pull/3144) RTLD_GLOBAL Support** - Added RTLD_GLOBAL flag support to FFI for Python C extension compatibility, enabling better interoperability with foreign libraries
 
-### Why Use the Hotness Branch?
+### Why Use the Bleeding Edge Branch?
 
-The hotness branch is ideal for:
+The bleeding branch is ideal for:
 - **Early adopters** wanting the latest features before official release
 - **Testing and feedback** on experimental improvements
 - **Production use cases** requiring specific enhancements (use with appropriate testing)

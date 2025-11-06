@@ -14,6 +14,58 @@ The homepage of the project is: [**https://www.scryer.pl**](https://www.scryer.p
 
 ![Scryer Logo: Cryer](logo/scryer.png)
 
+## 🔥 Hotness Branch - Experimental Features
+
+This branch (`hotness`) includes cutting-edge features and improvements not yet in the main branch:
+
+### Parser & Syntax Enhancements
+
+- **[PR #3134](https://github.com/mthom/scryer-prolog/pull/3134) Digit Separators** - Support for digit separators in binary, octal, and hexadecimal numbers for improved readability (e.g., `0b1111_0000`, `0xDEAD_BEEF`)
+
+- **[PR #3135](https://github.com/mthom/scryer-prolog/pull/3135) Double Bar Operator (`||`)** - Implementation of the double bar operator for partial string lists, following ISO Prolog standards
+
+- **[PR #3132](https://github.com/mthom/scryer-prolog/pull/3132) Dyadic Quad Syntax** - Added support for dyadic quad syntax
+
+- **[PR #3139](https://github.com/mthom/scryer-prolog/pull/3139) Parser Fixes** - Fixed parser to properly reject incomplete reductions like `([`, `({`, `((` with appropriate syntax errors
+
+- **[PR #3141](https://github.com/mthom/scryer-prolog/pull/3141) Single Bar Validation** - Fixed parser to reject `(|)` as a syntax error per ISO specification
+
+### Error Handling & Diagnostics
+
+- **[PR #3133](https://github.com/mthom/scryer-prolog/pull/3133) Improved Syntax Error Reporting** - Enhanced error messages to include source file names for better debugging
+
+- **[PR #3147](https://github.com/mthom/scryer-prolog/pull/3147) `--halt-on-error` Flag** - Terminate with exit code 1 on errors instead of entering REPL, making Scryer safe for scripting and CI/CD
+  ```bash
+  scryer-prolog --halt-on-error my_script.pl
+  ```
+
+### I/O & Streams
+
+- **[PR #2968](https://github.com/mthom/scryer-prolog/pull/2968) Character Streams** - Added `chars_stream/1` and `chars_to_stream/{2,3}` for REBIS (REading By Incremental Scanning) pattern support
+
+- **[PR #3136](https://github.com/mthom/scryer-prolog/pull/3136) Timeout Support for `get_n_chars/4`** - Enhanced `get_n_chars/4` with timeout and non-blocking I/O support
+  - Timeout mode: Wait up to N milliseconds for input
+  - Non-block mode: Return immediately with available data
+  - Proper UTF-8 boundary handling across timeouts
+
+### Term Expansion
+
+- **[PR #3137](https://github.com/mthom/scryer-prolog/pull/3137) Empty List Handling in `term_expansion/2`** - Allows `term_expansion/2` to return empty list to silently remove terms without warnings
+
+### Foreign Function Interface
+
+- **[PR #3144](https://github.com/mthom/scryer-prolog/pull/3144) RTLD_GLOBAL Support** - Added RTLD_GLOBAL flag support to FFI for Python C extension compatibility, enabling better interoperability with foreign libraries
+
+### Why Use the Hotness Branch?
+
+The hotness branch is ideal for:
+- **Early adopters** wanting the latest features before official release
+- **Testing and feedback** on experimental improvements
+- **Production use cases** requiring specific enhancements (use with appropriate testing)
+- **Contributing** to feature development and refinement
+
+⚠️ **Note**: This branch represents active development and may include features still under review.
+
 ## Phase 1
 
 Produce an implementation of the Warren Abstract Machine in Rust, done

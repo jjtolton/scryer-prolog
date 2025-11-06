@@ -160,37 +160,83 @@ error(syntax_error(incomplete_reduction), [file-'my_file.pl'|read_term/3:8]).
 
 ---
 
-### 🟡 `--halt-on-error` Flag for Scripting Safety
+### 🟡 Script-Safe Execution Flags: `--halt-on-error` and `--always-halt`
 **PR**: [#3147](https://github.com/mthom/scryer-prolog/pull/3147)
 **Status**: Testing
 **Branch**: `error-termination-flag`
 
-Terminate with exit code 1 on errors instead of entering REPL, making Scryer safe for scripting and CI/CD.
+Two complementary flags that make Scryer Prolog safe for scripting by preventing it from entering the REPL:
+
+1. **`--halt-on-error`** - Terminate with exit code 1 when encountering errors
+2. **`--always-halt`** - Always exit after execution completes (even without explicit `halt/0`)
+
+**The Problem**:
+Without these flags, Scryer drops into the REPL in two scenarios:
+- When an error occurs during execution
+- When a program completes without calling `halt/0`
+
+This causes scripts to hang indefinitely waiting for user input.
 
 **Usage**:
 ```bash
-# Normal behavior (enters REPL on error)
-scryer-prolog my_file.pl
-
-# Script-safe behavior (exits with code 1 on error)
+# Exit on errors only
 scryer-prolog --halt-on-error my_file.pl
 
-# In CI/CD pipeline
-scryer-prolog --halt-on-error -g "run_tests"
+# Always exit after completion (no REPL even on success)
+scryer-prolog --always-halt my_file.pl
+
+# Best for scripting: combine both flags
+scryer-prolog --always-halt --halt-on-error my_file.pl
+
+# With goals
+scryer-prolog --always-halt --halt-on-error -g "run_tests"
 ```
 
+**Behavior**:
+
+| Scenario | No flags | `--halt-on-error` | `--always-halt` | Both flags |
+|----------|----------|-------------------|-----------------|------------|
+| Success, no halt/0 | REPL | REPL | Exit 0 | Exit 0 |
+| Success, with halt/0 | Exit 0 | Exit 0 | Exit 0 | Exit 0 |
+| Error occurs | REPL | Exit 1 | REPL | Exit 1 |
+
 **Use Cases**:
-- Shell scripts that shouldn't hang
-- CI/CD pipelines
-- Automated testing
-- Docker containers
-- Cron jobs
-- Build systems
+- **Shell scripts** that shouldn't hang on errors or after completion
+- **CI/CD pipelines** requiring proper exit codes
+- **Automated testing** where REPL interaction is impossible
+- **Docker containers** that need to exit cleanly
+- **Cron jobs** running unattended
+- **Build systems** (Make, etc.)
+- **Batch processing** scripts
+
+**Examples**:
+
+*CI/CD Pipeline*:
+```bash
+#!/bin/bash
+set -e
+scryer-prolog --always-halt --halt-on-error compile.pl
+scryer-prolog --always-halt --halt-on-error -g "run_tests"
+echo "All checks passed!"
+```
+
+*Makefile*:
+```makefile
+test:
+	scryer-prolog --always-halt --halt-on-error -g "run_all_tests"
+```
+
+*One-shot data processing*:
+```bash
+scryer-prolog --always-halt --halt-on-error process_data.pl < input.txt > output.txt
+```
 
 **Benefits**:
 - Prevents scripts from hanging indefinitely
-- Proper exit codes for automation
+- Proper exit codes (0 for success, 1 for errors)
 - No REPL interaction in headless environments
+- Works with files and goals
+- Composable: use one or both flags as needed
 
 **Related Issue**: [#3146](https://github.com/mthom/scryer-prolog/issues/3146)
 

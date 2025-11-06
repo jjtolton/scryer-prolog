@@ -34,9 +34,12 @@ This branch (`hotness`) includes cutting-edge features and improvements not yet 
 
 - **[PR #3133](https://github.com/mthom/scryer-prolog/pull/3133) Improved Syntax Error Reporting** - Enhanced error messages to include source file names for better debugging
 
-- **[PR #3147](https://github.com/mthom/scryer-prolog/pull/3147) `--halt-on-error` Flag** - Terminate with exit code 1 on errors instead of entering REPL, making Scryer safe for scripting and CI/CD
+- **[PR #3147](https://github.com/mthom/scryer-prolog/pull/3147) Script-Safe Execution Flags** - Two flags to prevent hanging in scripting contexts:
+  - `--halt-on-error` - Terminate with exit code 1 on errors instead of entering REPL
+  - `--always-halt` - Always exit after execution (even without explicit `halt/0`)
   ```bash
-  scryer-prolog --halt-on-error my_script.pl
+  # Exit on errors, always exit after completion
+  scryer-prolog --always-halt --halt-on-error my_script.pl
   ```
 
 ### I/O & Streams

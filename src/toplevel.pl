@@ -79,6 +79,7 @@ delegate_task([Arg0|Args], Goals0) :-
         ;   member(Arg0, ["-g", "--goal"]) -> gather_goal(g, Args, Goals0)
         ;   member(Arg0, ["-f"]) -> disable_init_file
         ;   member(Arg0, ["--no-add-history"]) -> ignore_machine_arg
+        ;   member(Arg0, ["--halt-on-error"]) -> ignore_machine_arg
         ),
         !,
         delegate_task(Args, Goals0)
@@ -100,6 +101,8 @@ print_help :-
     write('Fast startup. Do not load initialization file (~/.scryerrc)'), nl,
     write('   --no-add-history       '),
     write('Prevent adding input to history file (~/.scryer_history)'), nl,
+    write('   --halt-on-error        '),
+    write('Terminate with exit code 1 on errors instead of entering REPL'), nl,
     % write('                        '),
     halt.
 
@@ -154,19 +157,31 @@ run_goals([g(Gs0)|Goals]) :- !,
               Exception,
               (   write_term(Goal, [variable_names(VNs),double_quotes(DQ)]),
                   write(' causes: '),
-                  write_term(Exception, [double_quotes(DQ)]), nl % halt?
+                  write_term(Exception, [double_quotes(DQ)]), nl,
+                  (   halt_on_error_enabled ->
+                      halt(1)
+                  ;   true
+                  )
               )
         ) -> true
     ;   write('% Warning: initialization failed for: '),
-        write_term(Goal, [variable_names(VNs),double_quotes(DQ)]), nl
+        write_term(Goal, [variable_names(VNs),double_quotes(DQ)]), nl,
+        (   halt_on_error_enabled ->
+            halt(1)
+        ;   true
+        )
     ),
     run_goals(Goals).
 run_goals([c(Mod)|Goals]) :- !,
-    (   catch(consult(Mod), E, print_exception(E)) ->
+    (   catch(consult(Mod), E, (print_exception(E), (halt_on_error_enabled -> halt(1) ; true))) ->
         true
     ;   write('% Warning: initialization failed for: '),
         double_quotes_option(DQ),
-        write_term(consult(Mod), [double_quotes(DQ)]), nl
+        write_term(consult(Mod), [double_quotes(DQ)]), nl,
+        (   halt_on_error_enabled ->
+            halt(1)
+        ;   true
+        )
     ),
     run_goals(Goals).
 run_goals([Goal|_]) :-
@@ -542,6 +557,10 @@ gather_equations([Var = Value | Pairs], OrigVarList, Goals) :-
     gather_equations(Pairs, OrigVarList, Goals0)
     ).
 
+halt_on_error_enabled :-
+    raw_argv(Args),
+    member("--halt-on-error", Args).
+
 print_exception(E) :-
     (  E == error('$interrupt_thrown', repl) -> nl % print the
                                                    % exception on a
@@ -550,7 +569,11 @@ print_exception(E) :-
     ;  true
     ),
     loader:write_error(E),
-    nl.
+    nl,
+    (  halt_on_error_enabled ->
+       halt(1)
+    ;  true
+    ).
 
 print_exception_with_check(E) :-
     (  E = error(_, _:_) -> true % if the error source contains a line

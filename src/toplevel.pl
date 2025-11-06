@@ -110,8 +110,12 @@ print_help :-
     write('Prevent adding input to history file (~/.scryer_history)'), nl,
     write('   --halt-on-error        '),
     write('Terminate with exit code 1 on errors instead of entering REPL'), nl,
+    write('                          '),
+    write('(can also set SCRYER_HALT_ON_ERROR environment variable)'), nl,
     write('   --always-halt          '),
     write('Always exit after execution instead of entering REPL'), nl,
+    write('                          '),
+    write('(can also set SCRYER_ALWAYS_HALT environment variable)'), nl,
     % write('                        '),
     halt.
 
@@ -567,14 +571,19 @@ gather_equations([Var = Value | Pairs], OrigVarList, Goals) :-
     ).
 
 halt_on_error_enabled :-
-    raw_argv(Args),
-    (   member("--halt-on-error", Args)
-    ;   member("--always-halt", Args)
+    (   raw_argv(Args),
+        (   member("--halt-on-error", Args)
+        ;   member("--always-halt", Args)
+        )
+    ;   getenv("SCRYER_HALT_ON_ERROR", _)
+    ;   getenv("SCRYER_ALWAYS_HALT", _)
     ).
 
 always_halt_enabled :-
-    raw_argv(Args),
-    member("--always-halt", Args).
+    (   raw_argv(Args),
+        member("--always-halt", Args)
+    ;   getenv("SCRYER_ALWAYS_HALT", _)
+    ).
 
 print_exception(E) :-
     (  E == error('$interrupt_thrown', repl) -> nl % print the

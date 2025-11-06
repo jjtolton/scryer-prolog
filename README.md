@@ -66,6 +66,8 @@ The hotness branch is ideal for:
 
 ⚠️ **Note**: This branch represents active development and may include features still under review.
 
+📋 **For detailed documentation of each feature, status tracking, and examples, see [BLEEDING.md](BLEEDING.md)**
+
 ## Phase 1
 
 Produce an implementation of the Warren Abstract Machine in Rust, done

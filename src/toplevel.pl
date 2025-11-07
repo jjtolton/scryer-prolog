@@ -16,6 +16,7 @@
 
 :- dynamic(disabled_init_file/0).
 :- dynamic(started/0).
+:- dynamic(custom_toplevel/1).
 
 load_scryerrc :-
     (  '$home_directory'(HomeDir) ->
@@ -53,8 +54,11 @@ start_repl :-
     ;   true
     ),
     (\+ disabled_init_file -> load_scryerrc ; true),
-    (   always_halt_enabled ->
-        halt(0)
+    start_toplevel.
+
+start_toplevel :-
+    (   custom_toplevel(Goal) ->
+        user:call(Goal)
     ;   repl
     ).
 
@@ -67,26 +71,21 @@ arg_consults_goals(c(Mod), Args, [c(Mod)|Consults], Goals) :-
 arg_consults_goals(g(Goal), Args, Consults, [g(Goal)|Goals]) :-
     args_consults_goals(Args, Consults, Goals).
 
-delegate_task([], []).
 delegate_task([], Goals0) :-
     (\+ disabled_init_file -> load_scryerrc ; true),
     reverse(Goals0, Goals1),
     args_consults_goals(Goals1, Consults, Goals),
     run_goals(Consults),
     run_goals(Goals),
-    (   always_halt_enabled ->
-        halt(0)
-    ;   repl
-    ).
+    start_toplevel.
 
 delegate_task([Arg0|Args], Goals0) :-
     (   (   member(Arg0, ["-h", "--help"]) -> print_help
         ;   member(Arg0, ["-v", "--version"]) -> print_version
         ;   member(Arg0, ["-g", "--goal"]) -> gather_goal(g, Args, Goals0)
+        ;   member(Arg0, ["-t"]) -> gather_toplevel(Args, Goals0)
         ;   member(Arg0, ["-f"]) -> disable_init_file
         ;   member(Arg0, ["--no-add-history"]) -> ignore_machine_arg
-        ;   member(Arg0, ["--halt-on-error"]) -> ignore_machine_arg
-        ;   member(Arg0, ["--always-halt"]) -> ignore_machine_arg
         ),
         !,
         delegate_task(Args, Goals0)
@@ -104,14 +103,12 @@ print_help :-
     write('Print version information and exit'), nl,
     write('   -g, --goal GOAL        '),
     write('Run the query GOAL'), nl,
+    write('   -t GOAL                '),
+    write('Use GOAL as custom toplevel (arity 0 predicate)'), nl,
     write('   -f                     '),
     write('Fast startup. Do not load initialization file (~/.scryerrc)'), nl,
     write('   --no-add-history       '),
     write('Prevent adding input to history file (~/.scryer_history)'), nl,
-    write('   --halt-on-error        '),
-    write('Terminate with exit code 1 on errors instead of entering REPL'), nl,
-    write('   --always-halt          '),
-    write('Always exit after execution instead of entering REPL'), nl,
     % write('                        '),
     halt.
 
@@ -128,6 +125,17 @@ gather_goal(Type, Args0, Goals) :-
     [Gs1|Args] = Args0,
     Gs =.. [Type, Gs1],
     delegate_task(Args, [Gs|Goals]).
+
+gather_toplevel(Args0, Goals0) :-
+    length(Args0, N),
+    (   N < 1 -> print_help, halt
+    ;   true
+    ),
+    [TopLevel|Args] = Args0,
+    atom_chars(Goal, TopLevel),
+    retractall(custom_toplevel(_)),
+    asserta(custom_toplevel(Goal)),
+    delegate_task(Args, Goals0).
 
 disable_init_file :-
     asserta('disabled_init_file').
@@ -166,31 +174,19 @@ run_goals([g(Gs0)|Goals]) :- !,
               Exception,
               (   write_term(Goal, [variable_names(VNs),double_quotes(DQ)]),
                   write(' causes: '),
-                  write_term(Exception, [double_quotes(DQ)]), nl,
-                  (   halt_on_error_enabled ->
-                      halt(1)
-                  ;   true
-                  )
+                  write_term(Exception, [double_quotes(DQ)]), nl
               )
         ) -> true
     ;   write('% Warning: initialization failed for: '),
-        write_term(Goal, [variable_names(VNs),double_quotes(DQ)]), nl,
-        (   halt_on_error_enabled ->
-            halt(1)
-        ;   true
-        )
+        write_term(Goal, [variable_names(VNs),double_quotes(DQ)]), nl
     ),
     run_goals(Goals).
 run_goals([c(Mod)|Goals]) :- !,
-    (   catch(consult(Mod), E, (print_exception(E), (halt_on_error_enabled -> halt(1) ; true))) ->
+    (   catch(consult(Mod), E, print_exception(E)) ->
         true
     ;   write('% Warning: initialization failed for: '),
         double_quotes_option(DQ),
-        write_term(consult(Mod), [double_quotes(DQ)]), nl,
-        (   halt_on_error_enabled ->
-            halt(1)
-        ;   true
-        )
+        write_term(consult(Mod), [double_quotes(DQ)]), nl
     ),
     run_goals(Goals).
 run_goals([Goal|_]) :-
@@ -566,16 +562,6 @@ gather_equations([Var = Value | Pairs], OrigVarList, Goals) :-
     gather_equations(Pairs, OrigVarList, Goals0)
     ).
 
-halt_on_error_enabled :-
-    raw_argv(Args),
-    (   member("--halt-on-error", Args)
-    ;   member("--always-halt", Args)
-    ).
-
-always_halt_enabled :-
-    raw_argv(Args),
-    member("--always-halt", Args).
-
 print_exception(E) :-
     (  E == error('$interrupt_thrown', repl) -> nl % print the
                                                    % exception on a
@@ -584,11 +570,7 @@ print_exception(E) :-
     ;  true
     ),
     loader:write_error(E),
-    nl,
-    (  halt_on_error_enabled ->
-       halt(1)
-    ;  true
-    ).
+    nl.
 
 print_exception_with_check(E) :-
     (  E = error(_, _:_) -> true % if the error source contains a line

@@ -4,6 +4,7 @@ use std::env;
 #[derive(Debug)]
 pub struct MachineArgs {
     pub add_history: bool,
+    pub always_halt: bool,
 }
 
 impl MachineArgs {
@@ -11,6 +12,7 @@ impl MachineArgs {
         let args: BTreeSet<String> = env::args().collect();
         Self {
             add_history: !args.contains("--no-add-history"),
+            always_halt: args.contains("--always-halt"),
         }
     }
 }

@@ -29,6 +29,10 @@ load_scryerrc :-
     ;  true
     ).
 
+always_halt_enabled :-
+    raw_argv(Args),
+    member("--always-halt", Args).
+
 '$repl' :-
     catch(
         start_repl,
@@ -59,6 +63,8 @@ start_repl :-
 start_toplevel :-
     (   custom_toplevel(Goal) ->
         user:call(Goal)
+    ;   always_halt_enabled ->
+        halt(0)
     ;   repl
     ).
 
@@ -86,6 +92,7 @@ delegate_task([Arg0|Args], Goals0) :-
         ;   member(Arg0, ["-t"]) -> gather_toplevel(Args, Goals0)
         ;   member(Arg0, ["-f"]) -> disable_init_file
         ;   member(Arg0, ["--no-add-history"]) -> ignore_machine_arg
+        ;   member(Arg0, ["--always-halt"]) -> ignore_machine_arg
         ),
         !,
         delegate_task(Args, Goals0)
@@ -109,6 +116,8 @@ print_help :-
     write('Fast startup. Do not load initialization file (~/.scryerrc)'), nl,
     write('   --no-add-history       '),
     write('Prevent adding input to history file (~/.scryer_history)'), nl,
+    write('   --always-halt          '),
+    write('Always exit after execution instead of entering REPL'), nl,
     % write('                        '),
     halt.
 

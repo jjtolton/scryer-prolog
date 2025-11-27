@@ -8,8 +8,8 @@ Integration testing branch for [mthom/scryer-prolog](https://github.com/mthom/sc
 
 | Feature | Description | Reference | PR |
 |---------|-------------|-----------|-----|
-| `||` operator | Partial string list continuation | [WG17 2025](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar) | [#3135](https://github.com/mthom/scryer-prolog/pull/3135) |
-| `(|)` syntax | Bar atom in parentheses (valid) | [ISO TC2 C2](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/dtc2#C2) | [#3172](https://github.com/mthom/scryer-prolog/pull/3172) |
+| `\|\|` operator | Partial string list continuation | [WG17 2025](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar) | [#3135](https://github.com/mthom/scryer-prolog/pull/3135) |
+| `(\|)` syntax | Bar atom in parentheses (valid) | [ISO TC2 C2](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/dtc2#C2) | [#3172](https://github.com/mthom/scryer-prolog/pull/3172) |
 | Bracket errors | Reject incomplete `([`, `({` | ISO 6.3 | [#3139](https://github.com/mthom/scryer-prolog/pull/3139) |
 
 ## Tests Added Since upstream/master

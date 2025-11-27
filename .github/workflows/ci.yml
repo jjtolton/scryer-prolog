@@ -17,8 +17,8 @@ permissions:
   checks: write
 
 jobs:
-  # Fast test job for combined-testing branch
-  quick-test:
+  combined-tests:
+    name: Combined Tests
     if: github.ref == 'refs/heads/combined-testing'
     runs-on: ubuntu-22.04
     steps:

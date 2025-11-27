@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: 
+    branches:
       - master
       - rebis-dev
+      - combined-testing
+      - double-bar
     tags:
       - "v**"
   pull_request:

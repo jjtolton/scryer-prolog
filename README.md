@@ -6,22 +6,22 @@ Integration testing branch for [mthom/scryer-prolog](https://github.com/mthom/sc
 
 ## Included Features
 
-| Feature | Description | Reference |
-|---------|-------------|-----------|
-| `||` operator | Partial string list continuation | [WG17 2025](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar) |
-| `(|)` syntax | Bar atom in parentheses (valid) | [ISO TC2 C2](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/dtc2#C2) |
-| Bracket errors | Reject incomplete `([`, `({` | ISO 6.3 |
+| Feature | Description | Reference | PR |
+|---------|-------------|-----------|-----|
+| `||` operator | Partial string list continuation | [WG17 2025](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar) | [#3135](https://github.com/mthom/scryer-prolog/pull/3135) |
+| `(|)` syntax | Bar atom in parentheses (valid) | [ISO TC2 C2](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/dtc2#C2) | [#3172](https://github.com/mthom/scryer-prolog/pull/3172) |
+| Bracket errors | Reject incomplete `([`, `({` | ISO 6.3 | [#3139](https://github.com/mthom/scryer-prolog/pull/3139) |
 
 ## Tests Added Since upstream/master
 
-| File | Tests | Category | Reference |
-|------|-------|----------|-----------|
-| `src/tests/double_bar.pl` | 56 | `\|\|` string continuation | WG17 2025 |
-| `src/tests/digit_separators.pl` | 36 | Numeric underscore separators | ISO extension |
-| `src/tests/iso_syntax_errors.pl` | 14 | Bar operator `(\|)` syntax | ISO TC2 C2 |
-| `src/tests/double_bar_syntax_errors.pl` | 8 | Invalid `\|\|` rejection | WG17 2025 |
-| `src/tests/syntax_errors.pl` | 3 | Bracket mismatch errors | ISO 6.3 |
-| **Total** | **117** | | |
+| File | Tests | Category | Reference | PR |
+|------|-------|----------|-----------|-----|
+| `src/tests/double_bar.pl` | 56 | `\|\|` string continuation | WG17 2025 | [#3135](https://github.com/mthom/scryer-prolog/pull/3135) |
+| `src/tests/digit_separators.pl` | 36 | Numeric underscore separators | ISO extension | [#3134](https://github.com/mthom/scryer-prolog/pull/3134) |
+| `src/tests/iso_syntax_errors.pl` | 14 | Bar operator `(\|)` syntax | ISO TC2 C2 | [#3172](https://github.com/mthom/scryer-prolog/pull/3172) |
+| `src/tests/double_bar_syntax_errors.pl` | 8 | Invalid `\|\|` rejection | WG17 2025 | [#3135](https://github.com/mthom/scryer-prolog/pull/3135) |
+| `src/tests/syntax_errors.pl` | 3 | Bracket mismatch errors | ISO 6.3 | [#3139](https://github.com/mthom/scryer-prolog/pull/3139) |
+| **Total** | **117** | | | |
 
 ### ISO Syntax Errors Tests
 
@@ -54,3 +54,12 @@ Integration testing branch for [mthom/scryer-prolog](https://github.com/mthom/sc
 - [Upstream](https://github.com/mthom/scryer-prolog)
 - [ISO Conformity Testing](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/conformity_testing)
 - [WG17 Double Bar Spec](https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar)
+
+## Related PRs
+
+| PR | Title | Status |
+|----|-------|--------|
+| [#3135](https://github.com/mthom/scryer-prolog/pull/3135) | Implement double bar (\|\|) operator for partial string lists | Open |
+| [#3172](https://github.com/mthom/scryer-prolog/pull/3172) | Fix #3170: Reject (\|) when \| declared as operator | Open |
+| [#3139](https://github.com/mthom/scryer-prolog/pull/3139) | Fix parser to reject incomplete reductions like ([, ({, (( | Open |
+| [#3134](https://github.com/mthom/scryer-prolog/pull/3134) | Add digit separator support for binary, octal, and hexadecimal numbers | Open |

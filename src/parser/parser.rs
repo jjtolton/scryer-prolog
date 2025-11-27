@@ -350,7 +350,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
         }
     }
 
-    fn push_binary_op(&mut self, td: TokenDesc, spec: Specifier) {
+    fn push_binary_op(&mut self, td: TokenDesc, spec: Specifier) -> Result<(), ParserError> {
         if let Some(arg2) = self.terms.pop() {
             if let Some(name) = self.get_term_name(td) {
                 if let Some(arg1) = self.terms.pop() {
@@ -375,8 +375,11 @@ impl<'a, R: CharRead> Parser<'a, R> {
                                 Self::replace_cons_tail(arg1, arg2)
                             }
                             _ => {
-                                // Should never reach here due to validation, but handle gracefully
-                                Term::Clause(Cell::default(), name, vec![arg1, arg2])
+                                return Err(ParserError::UnexpectedChar(
+                                    '|',
+                                    self.lexer.line_num,
+                                    self.lexer.col_num,
+                                ));
                             }
                         }
                     } else {
@@ -393,6 +396,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
                 }
             }
         }
+        Ok(())
     }
 
     fn push_unary_op(&mut self, td: TokenDesc, spec: Specifier, assoc: OpDeclSpec) {
@@ -487,7 +491,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
         });
     }
 
-    fn reduce_op(&mut self, priority: usize) {
+    fn reduce_op(&mut self, priority: usize) -> Result<(), ParserError> {
         loop {
             if let Some(desc1) = self.stack.pop() {
                 if let Some(desc2) = self.stack.pop() {
@@ -495,10 +499,10 @@ impl<'a, R: CharRead> Parser<'a, R> {
                         if is_xfx!(desc2.spec) && affirm_xfx(priority, desc2, desc3, desc1)
                             || is_yfx!(desc2.spec) && affirm_yfx(priority, desc2, desc3, desc1)
                         {
-                            self.push_binary_op(desc2, LTERM);
+                            self.push_binary_op(desc2, LTERM)?;
                             continue;
                         } else if is_xfy!(desc2.spec) && affirm_xfy(priority, desc2, desc3, desc1) {
-                            self.push_binary_op(desc2, TERM);
+                            self.push_binary_op(desc2, TERM)?;
                             continue;
                         } else {
                             self.stack.push(desc3);
@@ -528,6 +532,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
 
             break;
         }
+        Ok(())
     }
 
     fn compute_arity_in_brackets(&self) -> Option<usize> {
@@ -559,16 +564,16 @@ impl<'a, R: CharRead> Parser<'a, R> {
         None
     }
 
-    fn reduce_term(&mut self) -> bool {
+    fn reduce_term(&mut self) -> Result<bool, ParserError> {
         if self.stack.is_empty() {
-            return false;
+            return Ok(false);
         }
 
-        self.reduce_op(999);
+        self.reduce_op(999)?;
 
         let arity = match self.compute_arity_in_brackets() {
             Some(arity) => arity,
-            None => return false,
+            None => return Ok(false),
         };
 
         if self.stack.len() > 2 * arity {
@@ -579,14 +584,14 @@ impl<'a, R: CharRead> Parser<'a, R> {
                 && !is_op!(self.stack[idx - 1].spec)
                 && !self.stack[idx - 1].tt.is_sep()
             {
-                return false;
+                return Ok(false);
             }
         } else {
-            return false;
+            return Ok(false);
         }
 
         if self.terms.len() < 1 + arity {
-            return false;
+            return Ok(false);
         }
 
         let stack_len = self.stack.len() - 2 * arity - 1;
@@ -627,7 +632,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
                 }) = self.stack.last_mut()
                 {
                     if *spec == BTERM {
-                        return false;
+                        return Ok(false);
                     }
 
                     *tt = TokenType::Term;
@@ -636,11 +641,11 @@ impl<'a, R: CharRead> Parser<'a, R> {
                     *unfold_bounds = 0;
                 }
 
-                return true;
+                return Ok(true);
             }
         }
 
-        false
+        Ok(false)
     }
 
     pub fn reset(&mut self) {
@@ -724,7 +729,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
 
         if let Some(ref mut td) = self.stack.last_mut() {
             if td.tt == TokenType::OpenList {
-                td.spec = TERM;
+                td.spec = LIST_TERM;
                 td.tt = TokenType::Term;
                 td.priority = 0;
 
@@ -734,7 +739,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
             }
         }
 
-        self.reduce_op(1000);
+        self.reduce_op(1000)?;
 
         let mut arity = match self.compute_arity_in_list() {
             Some(arity) => arity,
@@ -823,7 +828,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
             }
         }
 
-        self.reduce_op(1201);
+        self.reduce_op(1201)?;
 
         if self.stack.len() > 1 {
             if let Some(td) = self.stack.pop() {
@@ -859,19 +864,19 @@ impl<'a, R: CharRead> Parser<'a, R> {
         Ok(false)
     }
 
-    fn reduce_brackets(&mut self) -> bool {
+    fn reduce_brackets(&mut self) -> Result<bool, ParserError> {
         if self.stack.is_empty() {
-            return false;
+            return Ok(false);
         }
 
-        self.reduce_op(1400);
+        self.reduce_op(1400)?;
 
         if self.stack.len() <= 1 {
-            return false;
+            return Ok(false);
         }
 
         if let Some(TokenType::Open | TokenType::OpenCT) = self.stack.last().map(|token| token.tt) {
-            return false;
+            return Ok(false);
         }
 
         let idx = self.stack.len() - 2;
@@ -879,21 +884,8 @@ impl<'a, R: CharRead> Parser<'a, R> {
 
         match td.tt {
             TokenType::Open | TokenType::OpenCT => {
-                // Reject incomplete reductions and ISO-forbidden syntax
-                // See: https://www.complang.tuwien.ac.at/ulrich/iso-prolog/dtc2#C2
-                // Note: (,  is already rejected by checking Comma
-                // Note: ((  is already rejected by the check at line 823
-                match self.stack[idx].tt {
-                    TokenType::Comma
-                    | TokenType::OpenList
-                    | TokenType::OpenCurly => {
-                        return false;
-                    }
-                    TokenType::HeadTailSeparator => {
-                        // (|) is forbidden by ISO spec
-                        return false;
-                    }
-                    _ => {}
+                if self.stack[idx].tt == TokenType::Comma {
+                    return Ok(false);
                 }
 
                 if let Some(atom) = self.stack[idx].tt.sep_to_atom() {
@@ -905,9 +897,9 @@ impl<'a, R: CharRead> Parser<'a, R> {
                 self.stack[idx].tt = TokenType::Term;
                 self.stack[idx].priority = 0;
 
-                true
+                Ok(true)
             }
-            _ => false,
+            _ => Ok(false),
         }
     }
 
@@ -926,7 +918,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
                     Token::OpenCT => {
                         // can't be prefix, so either inf == 0
                         // or post == 0.
-                        self.reduce_op(inf + post);
+                        self.reduce_op(inf + post)?;
                         self.promote_atom_op(
                             name,
                             inf + post,
@@ -934,7 +926,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
                         );
                     }
                     _ => {
-                        self.reduce_op(inf + post);
+                        self.reduce_op(inf + post)?;
 
                         if let Some(TokenDesc { spec: pspec, .. }) = self.stack.last().cloned() {
                             // rterm.c: 412
@@ -961,7 +953,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
                     }
                 }
             } else {
-                self.reduce_op(pre + inf + post); // only one non-zero priority among these.
+                self.reduce_op(pre + inf + post)?; // only one non-zero priority among these.
                 self.promote_atom_op(name, pre + inf + post, spec);
             }
 
@@ -1059,7 +1051,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
             Token::Open => self.shift(Token::Open, 1300, DELIMITER),
             Token::OpenCT => self.shift(Token::OpenCT, 1300, DELIMITER),
             Token::Close => {
-                if !self.reduce_term() && !self.reduce_brackets() {
+                if !self.reduce_term()? && !self.reduce_brackets()? {
                     return Err(ParserError::IncompleteReduction(
                         self.lexer.line_num,
                         self.lexer.col_num,
@@ -1124,7 +1116,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
                         ));
                     }
 
-                    self.reduce_op(1);
+                    self.reduce_op(1)?;
                     self.shift(Token::DoubleBar, 1, XFY as u32);
                 } else {
                     // Handle as regular HeadTailSeparator
@@ -1137,7 +1129,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
 
                     let old_stack_len = self.stack.len();
 
-                    self.reduce_op(priority);
+                    self.reduce_op(priority)?;
 
                     let new_stack_len = self.stack.len();
 
@@ -1191,11 +1183,11 @@ impl<'a, R: CharRead> Parser<'a, R> {
                     ));
                 }
 
-                self.reduce_op(1);
+                self.reduce_op(1)?;
                 self.shift(Token::DoubleBar, 1, XFY as u32);
             }
             Token::Comma => {
-                self.reduce_op(1000);
+                self.reduce_op(1000)?;
                 self.shift(Token::Comma, 1000, XFY as u32);
             }
             Token::End => match self.stack.last().map(|t| t.tt) {
@@ -1243,7 +1235,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
             self.shift_token(token, op_dir)?;
         }
 
-        self.reduce_op(1400);
+        self.reduce_op(1400)?;
 
         if self.terms.len() > 1 || self.stack.len() > 1 {
             return Err(ParserError::IncompleteReduction(

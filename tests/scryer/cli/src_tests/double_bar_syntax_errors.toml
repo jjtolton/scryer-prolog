@@ -1,0 +1,1 @@
+args = ["-f", "--no-add-history", "src/tests/double_bar_syntax_errors.pl", "-f", "-g", "use_module(library(double_bar_syntax_errors_tests)), double_bar_syntax_errors_tests:main_quiet(double_bar_syntax_errors_tests)"]

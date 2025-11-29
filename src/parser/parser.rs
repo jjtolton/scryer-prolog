@@ -778,7 +778,10 @@ impl<'a, R: CharRead> Parser<'a, R> {
         if self.stack.len() > 1 {
             if let Some(td) = self.stack.pop() {
                 if let Some(ref mut oc) = self.stack.last_mut() {
-                    if td.tt != TokenType::Term {
+                    // Issue #3170: Check that td is a proper term, not an unreduced operator.
+                    // Operators are stored with tt=Term but spec contains operator bits (XFX, YFX, etc).
+                    // A proper term has spec containing TERM bit (0x1000) without operator bits.
+                    if td.tt != TokenType::Term || is_op!(td.spec) {
                         return Ok(false);
                     }
 

@@ -3,7 +3,20 @@
 :- use_module(test_framework).
 
 % Tests for the double bar || operator
-% Based on: https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar
+% Spec: https://www.complang.tuwien.ac.at/ulrich/iso-prolog/double_bar
+%
+% Abstract syntax (from spec):
+%   term = double quoted list, bar, bar, term ;
+%   Priority: 0, 0, 0
+%
+% The LEFT side must be a double quoted list.
+% The RIGHT side (tail) can be any term at priority 0, including:
+%   - Variables: "abc"||K
+%   - Strings (chained): "a"||"b"||"c"
+%   - Atoms: "hello"||world (valid per abstract syntax)
+%   - Numbers: "abc"||123
+%
+% WG17 2025-06-02: Accepts option 1 (only after double quotes)
 
 test("basic double bar with variable tail", (
     L = "abc"||K,
@@ -20,6 +33,8 @@ test("empty string double bar unifies with tail", (
     L == K
 )).
 
+% Atom tail: valid per abstract syntax "term = dql, bar, bar, term"
+% The right-hand term can be any term at priority 0, including atoms.
 test("double bar with atom tail", (
     L = "hello"||world,
     L = [h,e,l,l,o|world]
@@ -115,19 +130,6 @@ test("multiple comments around bars", (
     L = [a,b]
 )).
 
-% Note: These invalid cases are tested at parse time, not runtime
-% They cannot be included as test/2 predicates because they fail at read_term
-% The parser correctly rejects them with syntax_error(incomplete_reduction)
-%
-% Invalid cases (verified separately):
-% - [1,2,3]||K => syntax_error
-% - [_]||Rs => syntax_error
-% - [a,b,c]||S => syntax_error
-% - K||[] => syntax_error
-% - ("a")||[] => syntax_error
-
-
-
 test("double bar chars mode empty at start of chain", (
     L = ""||"abc"||"de",
     L = [a,b,c,d,e]
@@ -163,156 +165,8 @@ test("double bar chars mode nested unification", (
     X = [c]
 )).
 
+% Numeric tail: valid per abstract syntax (right-hand term can be any term)
 test("double bar chars mode with numeric tail", (
     L = "abc"||123,
     L = [a,b,c|123]
 )).
-% Tests for double bar with double_quotes set to codes
-% These must be in a separate section with the flag set at parse time
-
-:- set_prolog_flag(double_quotes, codes).
-
-test("double bar with codes mode basic", (
-    L = "abc"||K,
-    L = [97,98,99|K]
-)).
-
-test("double bar with codes mode empty string", (
-    L = ""||K,
-    L == K
-)).
-
-test("double bar with codes mode chain", (
-    L = "a"||"b"||"c",
-    L = [97,98,99]
-)).
-
-test("double bar with codes mode unification", (
-    "abc"||X = [97,98,99,100,101],
-    X = [100,101]
-)).
-
-test("double bar with codes mode mixed empty and non-empty", (
-    L = ""||"hello"||""||world,
-    L = [104,101,108,108,111|world]
-)).
-
-test("double bar with codes mode with atom tail", (
-    L = "abc"||xyz,
-    L = [97,98,99|xyz]
-)).
-
-
-test("double bar with codes mode multi-line with line comment", (
-    L = "a"|| % multiple lines
-        "b"||
-        "c",
-    L = [97,98,99]
-)).
-
-test("double bar with codes mode multi-line with block comment", (
-    L = "a"||"b"|| /* with comments */ "c",
-    L = [97,98,99]
-)).
-
-test("double bar with codes mode multi-line complex", (
-    L = "a"|| % first line
-        "b"|| /* second */
-        "c",
-    L = [97,98,99]
-)).
-
-test("double bar with codes mode spaced syntax", (
-    L = "abc" | | K,
-    L = [97,98,99|K]
-)).
-
-test("double bar with codes mode spaced chain", (
-    L = "a" | | "b" | | "c",
-    L = [97,98,99]
-)).
-
-test("double bar with codes mode block comment between bars", (
-    L = "a" | /* comment */ | "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode line comment between bars", (
-    L = "a" | % line comment
-        | "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode block comment in spaced bar with tail", (
-    L = "abc" |/* comment */| K,
-    L = [97,98,99|K]
-)).
-
-test("double bar with codes mode comment before double bar", (
-    L = "a" /* before */ || "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode comment after double bar", (
-    L = "a" || /* after */ "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode comment before spaced bars", (
-    L = "a" /* before */ | | "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode comment after spaced bars", (
-    L = "a" | | /* after */ "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode multiple comments around bars", (
-    L = "a" /* before */ | /* between */ | /* after */ "b",
-    L = [97,98]
-)).
-
-test("double bar with codes mode empty at start of chain", (
-    L = ""||"abc"||"de",
-    L = [97,98,99,100,101]
-)).
-
-test("double bar with codes mode empty in middle of chain", (
-    L = "ab"||""||"cd",
-    L = [97,98,99,100]
-)).
-
-test("double bar with codes mode empty at end of chain", (
-    L = "abc"||"de"||"",
-    L = [97,98,99,100,101]
-)).
-
-test("double bar with codes mode single character strings", (
-    L = "x"||"y"||"z",
-    L = [120,121,122]
-)).
-
-test("double bar with codes mode unicode characters", (
-    L = "α"||"β"||tail,
-    L = [945,946|tail]
-)).
-
-test("double bar with codes mode longer strings", (
-    L = "hello"||"world",
-    L = [104,101,108,108,111,119,111,114,108,100]
-)).
-
-test("double bar with codes mode nested unification", (
-    "a"||"b"||X = [97,98,99],
-    X = [99]
-)).
-
-
-test("double bar with codes mode with numeric tail", (
-    L = "abc"||123,
-    L = [97,98,99|123]
-)).
-
-
-:- set_prolog_flag(double_quotes, chars).

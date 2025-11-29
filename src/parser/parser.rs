@@ -712,6 +712,8 @@ impl<'a, R: CharRead> Parser<'a, R> {
                     continue;
                 }
                 return None;
+            } else if desc.tt == TokenType::DoubleBar {
+                return None;
             } else if desc.tt == TokenType::OpenList {
                 return Some(arity);
             } else if desc.tt != TokenType::Comma {
@@ -1116,6 +1118,8 @@ impl<'a, R: CharRead> Parser<'a, R> {
                         match last_term {
                             Term::CompleteString(_, _) => true,
                             Term::PartialString(_, _, _) => true,
+                            Term::Cons(_, _, _) => true,
+                            Term::Literal(_, Literal::Atom(atom)) if *atom == atom!("[]") => true,
                             _ => false,
                         }
                     } else {

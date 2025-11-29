@@ -887,11 +887,13 @@ impl<'a, R: CharRead> Parser<'a, R> {
 
         match td.tt {
             TokenType::Open | TokenType::OpenCT => {
-                // Reject incomplete bracket syntax per PR #3139 / Issue #3
+                // Reject incomplete bracket syntax and ISO-forbidden syntax
                 // ([) and ({) are invalid - brackets don't match parentheses
-                // Note: (|) is valid - bar converts to atom '|' via sep_to_atom
+                // (,) and (|) are NEVER valid - comma and bar are NOT atoms
+                // See conformity test s#360: even with op(1105,xfy,'|'), (|) must error
                 match self.stack[idx].tt {
                     TokenType::Comma
+                    | TokenType::HeadTailSeparator
                     | TokenType::OpenList
                     | TokenType::OpenCurly => {
                         return Ok(false);

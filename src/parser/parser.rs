@@ -809,7 +809,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
         Ok(false)
     }
 
-    fn reduce_brackets(&mut self) -> bool {
+    fn reduce_brackets(&mut self, op_dir: &CompositeOpDir) -> bool {
         if self.stack.is_empty() {
             return false;
         }
@@ -831,6 +831,16 @@ impl<'a, R: CharRead> Parser<'a, R> {
             TokenType::Open | TokenType::OpenCT => {
                 if self.stack[idx].tt == TokenType::Comma {
                     return false;
+                }
+
+                // ISO TC2 C2: Bar is only equivalent to atom '|' when '|' is an operator.
+                // When '|' is NOT an operator, bar is "not an atom" and (|) violates
+                // the grammar rule: term = open, term, close (6.3.4.1)
+                if self.stack[idx].tt == TokenType::HeadTailSeparator {
+                    if get_op_desc(atom!("|"), op_dir).is_none() {
+                        // '|' is not an operator, so (|) is a syntax error
+                        return false;
+                    }
                 }
 
                 if let Some(atom) = self.stack[idx].tt.sep_to_atom() {
@@ -996,7 +1006,7 @@ impl<'a, R: CharRead> Parser<'a, R> {
             Token::Open => self.shift(Token::Open, 1300, DELIMITER),
             Token::OpenCT => self.shift(Token::OpenCT, 1300, DELIMITER),
             Token::Close => {
-                if !self.reduce_term() && !self.reduce_brackets() {
+                if !self.reduce_term() && !self.reduce_brackets(op_dir) {
                     return Err(ParserError::IncompleteReduction(
                         self.lexer.line_num,
                         self.lexer.col_num,

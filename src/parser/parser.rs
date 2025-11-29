@@ -887,8 +887,16 @@ impl<'a, R: CharRead> Parser<'a, R> {
 
         match td.tt {
             TokenType::Open | TokenType::OpenCT => {
-                if self.stack[idx].tt == TokenType::Comma {
-                    return Ok(false);
+                // Reject incomplete bracket syntax per PR #3139 / Issue #3
+                // ([) and ({) are invalid - brackets don't match parentheses
+                // Note: (|) is valid - bar converts to atom '|' via sep_to_atom
+                match self.stack[idx].tt {
+                    TokenType::Comma
+                    | TokenType::OpenList
+                    | TokenType::OpenCurly => {
+                        return Ok(false);
+                    }
+                    _ => {}
                 }
 
                 if let Some(atom) = self.stack[idx].tt.sep_to_atom() {
